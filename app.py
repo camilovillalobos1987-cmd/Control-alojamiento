@@ -371,6 +371,17 @@ def trabajador_cambio_estado(id):
     flash(f"Estado actualizado a '{nuevo_estado}'.", "success")
     return redirect(url_for("trabajador_detalle", id=id))
 
+@app.route("/public/qr/<token>.png")
+def public_qr_png(token):
+    from qr_manager import generar_imagen_qr
+    import io
+    from flask import send_file
+    img_bytes = generar_imagen_qr(token)
+    return send_file(
+        io.BytesIO(img_bytes),
+        mimetype="image/png"
+    )
+
 
 @app.route("/trabajadores/<int:id>/qr/descargar")
 @admin_required

@@ -46,6 +46,12 @@ def notificar_llegada(trabajador: dict) -> bool:
     """
     if not trabajador.get("email"):
         return False
+        
+    from flask import request
+    try:
+        host_url = request.host_url
+    except Exception:
+        host_url = ""
 
     modulo = trabajador.get("modulo", "—")
     piso = trabajador.get("piso", "—")
@@ -70,7 +76,12 @@ def notificar_llegada(trabajador: dict) -> bool:
           <p style="margin:4px 0;"><strong>🔄 Turno:</strong> {trabajador.get("turno", "—")}</p>
         </div>
 
-        <p>Recuerda presentar tu <strong>código QR</strong> al ingresar al campamento.</p>
+        <div style="text-align:center; margin: 20px 0;">
+          <h3 style="color:#1e3a5f; margin-bottom: 10px;">Tu Tarjeta QR de Identificación</h3>
+          <img src="{host_url}public/qr/{trabajador.get('qr_token')}.png" alt="QR Code" width="180" height="180" style="border: 2px solid #1e3a5f; border-radius: 8px; padding: 5px;" />
+        </div>
+
+        <p>Por favor, mantén este código QR guardado en tu celular. El administrador del campamento lo solicitará y escaneará durante el <strong>censo en la habitación</strong> para hacer más rápida la validación de estadía.</p>
         <p style="color:#888;font-size:12px;margin-top:20px;">Este es un mensaje automático. Por favor no respondas a este correo.</p>
       </div>
     </div>
