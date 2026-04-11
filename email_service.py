@@ -5,24 +5,38 @@ from config import GMAIL_USER, GMAIL_APP_PASSWORD, NOMBRE_EMPRESA
 from database import log_notificacion
 
 
-def _enviar_email(destinatario: str, asunto: str, cuerpo_html: str) -> bool:
-    """Función base para envío de emails via Gmail."""
-    if not GMAIL_USER or not GMAIL_APP_PASSWORD:
-        print("[EMAIL] Gmail no configurado. Omitiendo envío.")
-        return False
-    try:
-        msg = MIMEMultipart("alternative")
-        msg["Subject"] = asunto
-        msg["From"] = f"{NOMBRE_EMPRESA} <{GMAIL_USER}>"
-        msg["To"] = destinatario
-        msg.attach(MIMEText(cuerpo_html, "html", "utf-8"))
+import urllib.request
+import json
 
-        with smtplib.SMTP_SSL("smtp.gmail.com", 465, timeout=5) as server:
-            server.login(GMAIL_USER, GMAIL_APP_PASSWORD)
-            server.sendmail(GMAIL_USER, destinatario, msg.as_string())
-        return True
+def _enviar_email(destinatario: str, asunto: str, cuerpo_html: str) -> bool:
+    """Función para envío de emails saltando el bloqueo SMTP usando Google Apps Webhook."""
+    import os
+    webhook_url = os.getenv("GMAIL_WEBHOOK_URL")
+    
+    if not webhook_url:
+        print("[EMAIL] GMAIL_WEBHOOK_URL no configurado. Omitiendo envío.")
+        return False
+        
+    try:
+        payload = {
+            "to": destinatario,
+            "subject": asunto,
+            "html": cuerpo_html
+        }
+        
+        data = json.dumps(payload).encode('utf-8')
+        req = urllib.request.Request(webhook_url, data=data, headers={'Content-Type': 'application/json'}, method='POST')
+        
+        with urllib.request.urlopen(req, timeout=10) as response:
+            if response.status == 200:
+                print(f"[EMAIL] Enviado a {destinatario} por Webhook.")
+                return True
+            else:
+                print(f"[EMAIL ERROR API] HTTP {response.status}")
+                return False
+            
     except Exception as e:
-        print(f"[EMAIL ERROR] {e}")
+        print(f"[EMAIL ERROR] Fallo al contactar Webhook API: {e}")
         return False
 
 
