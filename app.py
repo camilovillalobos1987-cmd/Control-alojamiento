@@ -210,11 +210,42 @@ def trabajadores_lista():
                  "Falla", "Licencia Médica", "Vacaciones", "Desvinculado"],
     )
 
-def limpiar_rut(rut_raw):
+def limpiar_y_validar_rut(rut_raw):
+    # Primero limpiar puntos y espacios
     r = rut_raw.replace(".", "").replace("-", "").replace(" ", "").upper()
-    if len(r) > 1:
-        return f"{r[:-1]}-{r[-1]}"
-    return rut_raw
+    if len(r) < 2:
+        return False, rut_raw
+        
+    cuerpo = r[:-1]
+    dv = r[-1]
+    
+    # Validar que el cuerpo sea solo dígitos
+    if not cuerpo.isdigit():
+        return False, rut_raw
+        
+    # Algoritmo Módulo 11
+    suma = 0
+    multiplicador = 2
+    for digito in reversed(cuerpo):
+        suma += int(digito) * multiplicador
+        multiplicador += 1
+        if multiplicador == 8:
+            multiplicador = 2
+            
+    resto = suma % 11
+    dv_calculado = 11 - resto
+    
+    if dv_calculado == 11:
+        dv_esperado = '0'
+    elif dv_calculado == 10:
+        dv_esperado = 'K'
+    else:
+        dv_esperado = str(dv_calculado)
+        
+    if dv != dv_esperado:
+        return False, rut_raw
+        
+    return True, f"{cuerpo}-{dv}"
 
 def is_valido_email(email):
     if not email:
@@ -233,9 +264,14 @@ def trabajador_nuevo():
             flash("Formato de correo electrónico inválido (Ej: usuario@empresa.com)", "danger")
             return redirect(url_for("trabajador_nuevo"))
             
+        rut_valido, rut_limpio = limpiar_y_validar_rut(request.form["rut"])
+        if not rut_valido:
+            flash("El RUT ingresado no es válido. Revisa los dígitos.", "danger")
+            return redirect(url_for("trabajador_nuevo"))
+            
         data = {
             "nombre": request.form["nombre"].strip(),
-            "rut": limpiar_rut(request.form["rut"]),
+            "rut": rut_limpio,
             "cargo": request.form.get("cargo", "").strip(),
             "turno": request.form["turno"],
             "email": email_clean,
@@ -331,9 +367,14 @@ def trabajador_editar(id):
             flash("Formato de correo electrónico inválido.", "danger")
             return redirect(url_for("trabajador_editar", id=id))
             
+        rut_valido, rut_limpio = limpiar_y_validar_rut(request.form["rut"])
+        if not rut_valido:
+            flash("El RUT ingresado no es válido matemáticamente.", "danger")
+            return redirect(url_for("trabajador_editar", id=id))
+            
         data = {
             "nombre": request.form["nombre"].strip(),
-            "rut": limpiar_rut(request.form["rut"]),
+            "rut": rut_limpio,
             "cargo": request.form.get("cargo", "").strip(),
             "turno": request.form["turno"],
             "email": email_clean,
@@ -475,10 +516,15 @@ def trabajadores_importar():
         for i, row in enumerate(reader, start=2):
             nombre = (row.get("nombre") or "").strip()
             rut_raw = (row.get("rut") or "").strip()
-            rut = limpiar_rut(rut_raw) if rut_raw else ""
             
-            if not nombre or not rut:
+            rut_valido, rut_limpio = limpiar_y_validar_rut(rut_raw) if rut_raw else (False, "")
+            
+            if not nombre or not rut_raw:
                 errores.append(f"Fila {i}: nombre y RUT son obligatorios.")
+                continue
+                
+            if not rut_valido:
+                errores.append(f"Fila {i} ({nombre}): RUT '{rut_raw}' es matemáticamente inválido.")
                 continue
 
             turno = (row.get("turno") or "").strip() or None
@@ -499,7 +545,7 @@ def trabajadores_importar():
 
             data = {
                 "nombre":             nombre,
-                "rut":                rut,
+                "rut":                rut_limpio,
                 "cargo":              (row.get("cargo")  or "").strip(),
                 "turno":              turno,
                 "email":              email_raw,
