@@ -1031,6 +1031,46 @@ def _regenerar_qr(trabajador_id: int):
 # ═══════════════════════════════════════════════════════
 # ADMINISTRACIÓN / DESARROLLO
 # ═══════════════════════════════════════════════════════
+@app.route("/admin/usuarios", methods=["GET", "POST"])
+@admin_required
+def admin_usuarios():
+    from auth import hash_password
+    if request.method == "POST":
+        username = request.form.get("username", "").strip()
+        password = request.form.get("password", "")
+        rol = request.form.get("rol", "viewer")
+        nombre = request.form.get("nombre", "").strip()
+        
+        if not username or not password:
+            flash("Usuario y contraseña son requeridos.", "warning")
+            return redirect(url_for("admin_usuarios"))
+            
+        if db.usuario_existe(username):
+            flash("Ese nombre de usuario ya existe.", "danger")
+            return redirect(url_for("admin_usuarios"))
+            
+        db.crear_usuario(username, hash_password(password), rol, nombre)
+        flash(f"Usuario {username} creado exitosamente.", "success")
+        return redirect(url_for("admin_usuarios"))
+        
+    usuarios = db.get_todos_usuarios()
+    return render_template("admin/usuarios.html", usuarios=usuarios)
+
+@app.route("/admin/usuarios/<int:id>/eliminar", methods=["POST"])
+@admin_required
+def eliminar_usuario(id):
+    u = db.get_usuario_by_id(id)
+    if not u:
+        abort(404)
+    # Evitar que se elimine a si mismo
+    if u['username'] == session.get('user'):
+        flash("No puedes eliminar tu propio usuario mientras estás conectado.", "danger")
+        return redirect(url_for("admin_usuarios"))
+        
+    db.eliminar_usuario(id)
+    flash(f"Usuario {u['username']} eliminado.", "success")
+    return redirect(url_for("admin_usuarios"))
+
 @app.route("/admin/limpiar-bd", methods=["GET", "POST"])
 @admin_required
 def admin_limpiar_bd():

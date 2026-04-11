@@ -935,3 +935,9 @@ def usuario_existe(username: str) -> bool:
     row = conn.execute("SELECT id FROM usuarios WHERE username = ?", (username,)).fetchone()
     conn.close()
     return row is not None
+
+def eliminar_usuario(user_id: int):
+    conn = get_db()
+    conn.execute("DELETE FROM usuarios WHERE id = ?", (user_id,))
+    conn.commit()
+    conn.close()

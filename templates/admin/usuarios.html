@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+{% block title %}Gestión de Usuarios{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card bg-dark text-white border-secondary shadow">
+            <div class="card-body d-flex justify-content-between align-items-center">
+                <h3 class="mb-0"><i class="fas fa-users-cog me-2"></i> Gestión de Usuarios</h3>
+                <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#modalNuevoUsuario">
+                    <i class="fas fa-user-plus me-1"></i> Crear Usuario
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card border-secondary shadow-sm">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover table-striped align-middle mb-0">
+                <thead class="table-dark">
+                    <tr>
+                        <th>ID</th>
+                        <th>Usuario</th>
+                        <th>Nombre / Cargo</th>
+                        <th>Rol</th>
+                        <th>Creado en</th>
+                        <th class="text-end">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for u in usuarios %}
+                    <tr>
+                        <td>{{ u.id }}</td>
+                        <td><strong>{{ u.username }}</strong></td>
+                        <td>{{ u.nombre or '—' }}</td>
+                        <td>
+                            {% if u.rol == 'admin' %}
+                            <span class="badge bg-danger"><i class="fas fa-crown"></i> Admin</span>
+                            {% else %}
+                            <span class="badge bg-info"><i class="fas fa-eye"></i> Visor</span>
+                            {% endif %}
+                        </td>
+                        <td><small class="text-muted">{{ u.created_at|fecha_cl }}</small></td>
+                        <td class="text-end">
+                            {% if u.username == session['user'] %}
+                            <span class="badge bg-secondary">Sesión Actual</span>
+                            {% else %}
+                            <form action="{{ url_for('eliminar_usuario', id=u.id) }}" method="POST" class="d-inline" onsubmit="return confirm('¿Estás seguro de eliminar el usuario {{ u.username }}?');">
+                                <button type="submit" class="btn btn-sm btn-outline-danger" title="Eliminar Usuario">
+                                    <i class="fas fa-trash-alt"></i> Eliminar
+                                </button>
+                            </form>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="6" class="text-center py-4 text-muted">No hay usuarios registrados.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Nuevo Usuario -->
+<div class="modal fade" id="modalNuevoUsuario" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-dark text-white border-bottom border-secondary">
+                <h5 class="modal-title"><i class="fas fa-user-plus me-2"></i> Crear Nuevo Usuario</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form action="{{ url_for('admin_usuarios') }}" method="POST">
+                <div class="modal-body">
+                    <p class="text-muted small mb-3">Crea cuentas con contraseñas seguras y asigna el rol correspondiente al nivel de seguridad requerido.</p>
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Nombre de Usuario <span class="text-danger">*</span></label>
+                        <input type="text" name="username" class="form-control" placeholder="Ej: mmartinez" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Contraseña <span class="text-danger">*</span></label>
+                        <input type="password" name="password" class="form-control" placeholder="Mínimo 6 caracteres" required minlength="6">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Nombre Completo</label>
+                        <input type="text" name="nombre" class="form-control" placeholder="Ej: Mario Martinez">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Rol en el Sistema <span class="text-danger">*</span></label>
+                        <select name="rol" class="form-select" required>
+                            <option value="viewer">Visor (Solo consultas y escaneo en portería)</option>
+                            <option value="admin">Administrador (Control total del sistema)</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-success"><i class="fas fa-check me-1"></i> Guardar Usuario</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
