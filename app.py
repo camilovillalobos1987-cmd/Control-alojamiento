@@ -210,17 +210,35 @@ def trabajadores_lista():
                  "Falla", "Licencia Médica", "Vacaciones", "Desvinculado"],
     )
 
+def limpiar_rut(rut_raw):
+    r = rut_raw.replace(".", "").replace("-", "").replace(" ", "").upper()
+    if len(r) > 1:
+        return f"{r[:-1]}-{r[-1]}"
+    return rut_raw
+
+def is_valido_email(email):
+    if not email:
+        return True
+    import re
+    return re.match(r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$", email) is not None
+
+
 
 @app.route("/trabajadores/nuevo", methods=["GET", "POST"])
 @admin_required
 def trabajador_nuevo():
     if request.method == "POST":
+        email_clean = request.form.get("email", "").strip()
+        if not is_valido_email(email_clean):
+            flash("Formato de correo electrónico inválido (Ej: usuario@empresa.com)", "danger")
+            return redirect(url_for("trabajador_nuevo"))
+            
         data = {
             "nombre": request.form["nombre"].strip(),
-            "rut": request.form["rut"].strip(),
+            "rut": limpiar_rut(request.form["rut"]),
             "cargo": request.form.get("cargo", "").strip(),
             "turno": request.form["turno"],
-            "email": request.form.get("email", "").strip(),
+            "email": email_clean,
             "estado": request.form.get("estado", "En descanso"),
             "fecha_inicio_ciclo": request.form.get("fecha_inicio_ciclo") or None,
         }
@@ -308,12 +326,17 @@ def trabajador_editar(id):
     if not t:
         abort(404)
     if request.method == "POST":
+        email_clean = request.form.get("email", "").strip()
+        if not is_valido_email(email_clean):
+            flash("Formato de correo electrónico inválido.", "danger")
+            return redirect(url_for("trabajador_editar", id=id))
+            
         data = {
             "nombre": request.form["nombre"].strip(),
-            "rut": request.form["rut"].strip(),
+            "rut": limpiar_rut(request.form["rut"]),
             "cargo": request.form.get("cargo", "").strip(),
             "turno": request.form["turno"],
-            "email": request.form.get("email", "").strip(),
+            "email": email_clean,
             "estado": request.form.get("estado", t["estado"]),
             "fecha_inicio_ciclo": request.form.get("fecha_inicio_ciclo") or None,
         }
@@ -451,7 +474,9 @@ def trabajadores_importar():
 
         for i, row in enumerate(reader, start=2):
             nombre = (row.get("nombre") or "").strip()
-            rut    = (row.get("rut")    or "").strip()
+            rut_raw = (row.get("rut") or "").strip()
+            rut = limpiar_rut(rut_raw) if rut_raw else ""
+            
             if not nombre or not rut:
                 errores.append(f"Fila {i}: nombre y RUT son obligatorios.")
                 continue
@@ -466,13 +491,18 @@ def trabajadores_importar():
             estado = (row.get("estado") or "En descanso").strip()
             if estado not in estados_validos:
                 estado = "En descanso"
+                
+            email_raw = (row.get("email") or "").strip()
+            if email_raw and not is_valido_email(email_raw):
+                errores.append(f"Fila {i} ({nombre}): correo '{email_raw}' inválido. Se dejó en blanco.")
+                email_raw = ""
 
             data = {
                 "nombre":             nombre,
                 "rut":                rut,
                 "cargo":              (row.get("cargo")  or "").strip(),
                 "turno":              turno,
-                "email":              (row.get("email")  or "").strip(),
+                "email":              email_raw,
                 "estado":             estado,
                 "fecha_inicio_ciclo": (row.get("fecha_inicio_ciclo") or "").strip() or None,
             }
