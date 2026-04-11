@@ -410,15 +410,19 @@ def regenerar_qr_trabajador(id):
 @app.route("/trabajadores/<int:id>/notificar", methods=["POST"])
 @admin_required
 def notificar_trabajador(id):
-    t = db.get_trabajador(id)
-    if not t:
-        abort(404)
-    ok = notificar_llegada(t)
-    if ok:
-        flash("Correo de notificación enviado exitosamente.", "success")
-    else:
-        flash("No se pudo enviar el correo. Verifica la configuración Gmail.", "danger")
-    return redirect(url_for("trabajador_detalle", id=id))
+    import traceback
+    try:
+        t = db.get_trabajador(id)
+        if not t:
+            abort(404)
+        ok = notificar_llegada(t)
+        if ok:
+            flash("Correo de notificación enviado exitosamente.", "success")
+        else:
+            flash("No se pudo enviar el correo. Verifica la configuración Gmail.", "danger")
+        return redirect(url_for("trabajador_detalle", id=id))
+    except Exception as e:
+        return f"<h1>Error Interno de Debug:</h1><pre>{traceback.format_exc()}</pre>", 500
 
 
 # ═══════════════════════════════════════════════════════
