@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% block title %}Gestión de Turnos{% endblock %}
+
+{% block page_title %}Gestión de Turnos{% endblock %}
+
+{% block topbar_actions %}
+<button class="btn btn-primary" onclick="document.getElementById('modalNuevoTurno').style.display='flex'">
+  ➕ Nuevo Turno
+</button>
+{% endblock %}
+
+{% block content %}
+<div class="card fade-in">
+  <h2>Turnos Disponibles</h2>
+  <div style="overflow-x:auto;">
+    <table class="table" style="min-width: 600px;">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Nombre</th>
+          <th>Días Faena (Work)</th>
+          <th>Días Descanso (Rest)</th>
+          <th>Opciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for t in turnos %}
+        <tr>
+          <td>{{ t.id }}</td>
+          <td><strong>{{ t.nombre }}</strong></td>
+          <td>{{ t.work }}</td>
+          <td>{{ t.rest }}</td>
+          <td>
+            <form action="{{ url_for('eliminar_turno', id=t.id) }}" method="POST" style="display:inline;">
+              <button class="btn btn-danger btn-sm" onclick="return confirm('¿Seguro que deseas eliminar este turno? Podría afectar a los trabajadores que ya lo tengan asignado.')">🗑️ Eliminar</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Modal Nuevo Turno -->
+<div class="modal" id="modalNuevoTurno">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h2>Crear Nuevo Turno</h2>
+      <button class="modal-close" onclick="document.getElementById('modalNuevoTurno').style.display='none'">×</button>
+    </div>
+    <form action="{{ url_for('admin_turnos') }}" method="POST">
+      <div class="form-group">
+        <label>Nombre del Turno (ej: "10x10" o "6x1")</label>
+        <input type="text" name="nombre" class="form-control" required>
+      </div>
+      <div class="form-group">
+        <label>Días de Faena (Trabajo)</label>
+        <input type="number" name="work" class="form-control" min="1" required>
+      </div>
+      <div class="form-group">
+        <label>Días de Descanso</label>
+        <input type="number" name="rest" class="form-control" min="0" required>
+      </div>
+      
+      <div style="margin-top:20px; display:flex; gap:10px;">
+        <button type="submit" class="btn btn-primary">💾 Crear Turno</button>
+        <button type="button" class="btn btn-outline" onclick="document.getElementById('modalNuevoTurno').style.display='none'">Cancelar</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

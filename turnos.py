@@ -1,5 +1,5 @@
 from datetime import date, timedelta
-from config import TURNOS
+from database import get_turnos_dicts
 
 
 def calcular_estado_turno(turno: str, fecha_inicio_ciclo, target_date: date = None) -> dict:
@@ -10,6 +10,7 @@ def calcular_estado_turno(turno: str, fecha_inicio_ciclo, target_date: date = No
     Para turnos calendarizados (14x14-A, 8x6-B, etc.) se puede pasar None como
     fecha_inicio_ciclo; en ese caso se usa ref_inicio del config como base.
     """
+    TURNOS, _, _ = get_turnos_dicts()
     if turno not in TURNOS:
         return {
             "estado_calculado": "Indefinido",
@@ -89,6 +90,7 @@ def trabajadores_que_llegan_pronto(trabajadores: list, horas: int = 48) -> list:
 
 def get_proxima_subida(turno: str, fecha_inicio_ciclo) -> date | None:
     """Obtiene la próxima fecha de subida (puede ser hoy o en el futuro)."""
+    TURNOS, _, _ = get_turnos_dicts()
     if not fecha_inicio_ciclo or turno not in TURNOS:
         return None
     info = calcular_estado_turno(turno, fecha_inicio_ciclo)

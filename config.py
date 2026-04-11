@@ -33,20 +33,9 @@ else:
 DATABASE_PATH = os.getenv("DATABASE_PATH", default_db_path)
 PORT = int(os.getenv("PORT", 5000))
 
-# Ciclos de turno (días_faena, días_descanso)
-# ref_inicio: fecha de referencia del grupo según calendarización (Abril 2026)
-TURNOS = {
-    # ── Tipos genéricos (sin calendarización fija) ─────────────────────────
-    "14x14":   {"work": 14, "rest": 14},
-    "5x2":     {"work": 5,  "rest": 2},
-    "8x6":     {"work": 8,  "rest": 6},
-    "7x7":     {"work": 7,  "rest": 7},
-    "15x13":   {"work": 15, "rest": 13},
-    "Noche":   {"work": 14, "rest": 14},
-    # ── Tipos calendarizados (con fecha de inicio de ciclo de referencia) ──
-    # Par A↔B: cuando A trabaja B descansa (misma cama, nunca se ven)
-    # Par C↔D: cuando C trabaja D descansa (misma cama, nunca se ven)
-    # A y C se CRUZAN 7 días → NO pueden compartir pieza
+# Ciclos de turno iniciales (días_faena, días_descanso)
+# ref_inicio: fecha de referencia del grupo según calendarización
+TURNOS_BASE = {
     "14x14-A": {"work": 14, "rest": 14, "ref_inicio": "2026-03-12"},
     "14x14-B": {"work": 14, "rest": 14, "ref_inicio": "2026-03-26"},
     "14x14-C": {"work": 14, "rest": 14, "ref_inicio": "2026-03-05"},
@@ -57,21 +46,18 @@ TURNOS = {
     "5X2":     {"work": 5,  "rest": 2,  "ref_inicio": "2026-03-30"},
 }
 
-# Grupos de compatibilidad: solo turnos del MISMO grupo pueden compartir cama
-# sin riesgo de cruce (o con cruce mínimo aceptable).
-GRUPOS_TURNOS = {
-    "14x14-A": "14x14-AB",   # A y B se turnan: nunca coinciden en la pieza
+GRUPOS_BASE = {
+    "14x14-A": "14x14-AB",   
     "14x14-B": "14x14-AB",
-    "14x14-C": "14x14-CD",   # C y D se turnan: nunca coinciden en la pieza
+    "14x14-C": "14x14-CD",   
     "14x14-D": "14x14-CD",
-    "8x6-A":   "8x6",        # A y B se turnan (coinciden 1 noche, aceptable)
+    "8x6-A":   "8x6",        
     "8x6-B":   "8x6",
-    "4X3":     "4x3-5x2",    # Comparten entre sí por diseño
+    "4X3":     "4x3-5x2",    
     "5X2":     "4x3-5x2",
 }
 
-# Pares de contraturnos (cama caliente: el que llega ocupa la cama del que sale)
-CONTRATURNOS = {
+CONTRATURNOS_BASE = {
     "14x14-A": "14x14-B",
     "14x14-B": "14x14-A",
     "14x14-C": "14x14-D",

@@ -96,6 +96,16 @@ def init_db():
             hora            TEXT DEFAULT (time('now','localtime')),
             usuario         TEXT
         );
+
+        CREATE TABLE IF NOT EXISTS turnos (
+            id          INTEGER PRIMARY KEY AUTOINCREMENT,
+            nombre      TEXT UNIQUE NOT NULL,
+            work        INTEGER NOT NULL,
+            rest        INTEGER NOT NULL,
+            ref_inicio  TEXT,
+            grupo       TEXT,
+            contraturno TEXT
+        );
     """)
     conn.commit()
     conn.close()
@@ -146,6 +156,30 @@ def migrar_db():
                 usuario         TEXT
             )
         """)
+
+    # ── 4.5. Crear tabla turnos si no existe y poblarla ──
+    if 'turnos' not in tablas:
+        conn.execute("""
+            CREATE TABLE turnos (
+                id          INTEGER PRIMARY KEY AUTOINCREMENT,
+                nombre      TEXT UNIQUE NOT NULL,
+                work        INTEGER NOT NULL,
+                rest        INTEGER NOT NULL,
+                ref_inicio  TEXT,
+                grupo       TEXT,
+                contraturno TEXT
+            )
+        """)
+        
+    count_t = conn.execute("SELECT COUNT(*) FROM turnos").fetchone()[0]
+    if count_t == 0:
+        from config import TURNOS_BASE, GRUPOS_BASE, CONTRATURNOS_BASE
+        for t_name, t_data in TURNOS_BASE.items():
+            conn.execute("""
+                INSERT INTO turnos (nombre, work, rest, ref_inicio, grupo, contraturno)
+                VALUES (?, ?, ?, ?, ?, ?)
+            """, (t_name, t_data.get("work"), t_data.get("rest"), t_data.get("ref_inicio"), GRUPOS_BASE.get(t_name), CONTRATURNOS_BASE.get(t_name)))
+
 
     # ── 5. Eliminar CHECK restrictivo de turno para aceptar nuevos tipos ────
     # SQLite no permite ALTER COLUMN, se recrea la tabla si el esquema antiguo
@@ -388,6 +422,65 @@ def eliminar_habitacion(id: int) -> int:
     conn.commit()
     conn.close()
     return n_trabajadores
+
+
+def admin_limpiar_bd():
+    """Elimina TODO el contenido manteniendo la estructura, excepto el usuario admin."""
+    conn = get_db()
+    tablas = ["censo", "movimientos", "novedades", "notificaciones_log", "habitaciones", "trabajadores"]
+    for t in tablas:
+        conn.execute(f"DELETE FROM {t}")
+        conn.execute(f"DELETE FROM sqlite_sequence WHERE name='{t}'")
+
+    conn.execute("DELETE FROM usuarios WHERE username != 'admin'")
+
+    conn.commit()
+    conn.close()
+
+
+# ═══════════════════════════════════════════════════════
+#   TURNOS DINÁMICOS
+# ═══════════════════════════════════════════════════════
+def get_turnos_dicts():
+    """Devuelve las estructuras necesarias simulando el antiguo comportamiento de config.py"""
+    conn = get_db()
+    rows = conn.execute("SELECT * FROM turnos").fetchall()
+    conn.close()
+    
+    turnos = {}
+    grupos = {}
+    contraturnos = {}
+    for r in rows:
+        n = r["nombre"]
+        turnos[n] = {"work": r["work"], "rest": r["rest"], "ref_inicio": r["ref_inicio"]}
+        if r["grupo"]: grupos[n] = r["grupo"]
+        if r["contraturno"]: contraturnos[n] = r["contraturno"]
+        
+    return turnos, grupos, contraturnos
+
+def get_turnos_list():
+    """Devuelve la lista para el UI administrativo."""
+    conn = get_db()
+    rows = conn.execute("SELECT * FROM turnos ORDER BY nombre").fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+
+def crear_turno_db(data):
+    conn = get_db()
+    try:
+        conn.execute("""
+            INSERT INTO turnos (nombre, work, rest, ref_inicio, grupo, contraturno)
+            VALUES (?, ?, ?, ?, ?, ?)
+        """, (data["nombre"].strip(), int(data["work"]), int(data["rest"]), data.get("ref_inicio") or None, data.get("grupo") or None, data.get("contraturno") or None))
+        conn.commit()
+    finally:
+        conn.close()
+
+def eliminar_turno_db(id):
+    conn = get_db()
+    conn.execute("DELETE FROM turnos WHERE id = ?", (id,))
+    conn.commit()
+    conn.close()
 
 
 def agregar_piezas_modulo(modulo: str, piso: int, cantidad: int, capacidad: int = 3) -> int:

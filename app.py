@@ -26,7 +26,8 @@ def _fecha_larga(valor) -> str:
     except Exception:
         return str(valor)
 
-from config import SECRET_KEY, NOMBRE_EMPRESA, TURNOS, CONTRATURNOS, GRUPOS_TURNOS
+import re
+from config import SECRET_KEY, NOMBRE_EMPRESA
 import database as db
 from qr_manager import generar_token_qr, generar_imagen_qr, generar_qr_base64
 from turnos import calcular_estado_turno, trabajadores_que_llegan_pronto
@@ -196,6 +197,7 @@ def trabajadores_lista():
     start = (page - 1) * PER_PAGE
     paginados = filtrados[start:start + PER_PAGE]
 
+    TURNOS, _, _ = db.get_turnos_dicts()
     return render_template(
         "trabajadores/lista.html",
         trabajadores=paginados,
@@ -286,6 +288,7 @@ def trabajador_nuevo():
         except Exception as e:
             flash(f"Error al crear trabajador: {e}", "danger")
 
+    TURNOS, _, CONTRATURNOS = db.get_turnos_dicts()
     return render_template("trabajadores/formulario.html",
                            trabajador=None, turnos=list(TURNOS.keys()),
                            turnos_info={k: {"ref_inicio": v.get("ref_inicio"), "contraturno": CONTRATURNOS.get(k)} for k, v in TURNOS.items()},
@@ -385,6 +388,7 @@ def trabajador_editar(id):
         _regenerar_qr(id)
         flash("Trabajador actualizado.", "success")
         return redirect(url_for("trabajador_detalle", id=id))
+    TURNOS, _, CONTRATURNOS = db.get_turnos_dicts()
     return render_template("trabajadores/formulario.html",
                            trabajador=t, turnos=list(TURNOS.keys()),
                            turnos_info={k: {"ref_inicio": v.get("ref_inicio"), "contraturno": CONTRATURNOS.get(k)} for k, v in TURNOS.items()},
@@ -513,6 +517,8 @@ def trabajadores_importar():
         reader = csv.DictReader(io.StringIO(content))
         creados, omitidos, errores = 0, 0, []
 
+        TURNOS, _, _ = db.get_turnos_dicts()
+        
         for i, row in enumerate(reader, start=2):
             nombre = (row.get("nombre") or "").strip()
             rut_raw = (row.get("rut") or "").strip()
@@ -565,6 +571,7 @@ def trabajadores_importar():
         resultado = {"creados": creados, "omitidos": omitidos, "errores": errores}
 
     sin_hab = db.get_trabajadores_sin_habitacion()
+    TURNOS, _, _ = db.get_turnos_dicts()
     return render_template("trabajadores/importar.html",
                            resultado=resultado,
                            turnos=list(TURNOS.keys()),
@@ -672,6 +679,11 @@ def asignar_habitacion():
 
     t = db.get_trabajador(trabajador_id)
     hab_anterior = f"Módulo {t.get('modulo')} – Piso {t.get('piso')} – Pieza {t.get('pieza')}" if t and t.get("modulo") else None
+
+    if not t:
+        abort(404)
+
+    TURNOS, GRUPOS_TURNOS, CONTRATURNOS = db.get_turnos_dicts()
 
     # ── Verificar compatibilidad de turnos antes de asignar ─────────────────
     if not forzar and t.get("turno") in GRUPOS_TURNOS:
@@ -1157,6 +1169,37 @@ def eliminar_usuario(id):
     db.eliminar_usuario(id)
     flash(f"Usuario {u['username']} eliminado.", "success")
     return redirect(url_for("admin_usuarios"))
+
+@app.route("/admin/turnos", methods=["GET", "POST"])
+@admin_required
+def admin_turnos():
+    if request.method == "POST":
+        try:
+            nombre = request.form["nombre"].strip()
+            work = int(request.form["work"])
+            rest = int(request.form["rest"])
+            if not nombre or work < 1 or rest < 0:
+                raise ValueError("Datos inválidos")
+                
+            db.crear_turno_db({
+                "nombre": nombre,
+                "work": work,
+                "rest": rest,
+            })
+            flash(f"Turno '{nombre}' creado exitosamente.", "success")
+        except Exception as e:
+            flash(f"Error al crear turno: {e}", "danger")
+        return redirect(url_for("admin_turnos"))
+        
+    turnos_lista = db.get_turnos_list()
+    return render_template("admin/turnos.html", turnos=turnos_lista)
+
+@app.route("/admin/turnos/<int:id>/eliminar", methods=["POST"])
+@admin_required
+def eliminar_turno(id):
+    db.eliminar_turno_db(id)
+    flash("Turno eliminado.", "success")
+    return redirect(url_for("admin_turnos"))
 
 @app.route("/admin/limpiar-bd", methods=["GET", "POST"])
 @admin_required
