@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+{% block title %}Movimientos{% endblock %}
+{% block page_title %}📝 Historial de Movimientos{% endblock %}
+{% block page_subtitle %}Registro completo de entradas y salidas{% endblock %}
+
+{% block content %}
+
+<!-- FILTROS -->
+<div class="card mb-2">
+  <form method="GET" action="{{ url_for('reporte_movimientos') }}">
+    <div class="search-bar">
+      <select name="trabajador_id" class="form-control-sm" style="min-width:240px;" id="sel-trabajador-mov">
+        <option value="">Todos los trabajadores</option>
+        {% for t in trabajadores %}
+        <option value="{{ t.id }}" {{ 'selected' if trabajador_sel == t.id }}>
+          {{ t.nombre }} ({{ t.rut }})
+        </option>
+        {% endfor %}
+      </select>
+      <button type="submit" class="btn btn-primary btn-sm">Filtrar</button>
+      <a href="{{ url_for('reporte_movimientos') }}" class="btn btn-secondary btn-sm">Ver Todos</a>
+    </div>
+  </form>
+</div>
+
+<!-- TABLA -->
+<div class="card">
+  <div class="card-title">
+    📋 {{ movimientos|length }} movimiento(s) encontrado(s)
+  </div>
+  {% if movimientos %}
+  <div class="table-container">
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Trabajador</th>
+          <th>RUT</th>
+          <th>Cargo</th>
+          <th>Tipo</th>
+          <th>Método</th>
+          <th>Observación</th>
+          <th>Fecha y Hora</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for m in movimientos %}
+        <tr>
+          <td style="color:var(--text-muted);">{{ loop.index }}</td>
+          <td>
+            <div class="flex-center gap-1">
+              <div class="avatar" style="width:28px;height:28px;font-size:12px;">{{ m.nombre[0] }}</div>
+              <a href="{{ url_for('trabajador_detalle', id=m.trabajador_id) }}"
+                 style="font-weight:600;color:var(--text-primary);">{{ m.nombre }}</a>
+            </div>
+          </td>
+          <td class="font-mono" style="font-size:11px;">{{ m.rut }}</td>
+          <td style="font-size:12px;">{{ m.cargo or '—' }}</td>
+          <td>
+            {% if m.tipo == 'Entrada' %}
+              <span class="badge badge-green">⬆️ Entrada</span>
+            {% else %}
+              <span class="badge badge-blue">⬇️ Salida</span>
+            {% endif %}
+          </td>
+          <td><span class="badge badge-gray">{{ m.metodo }}</span></td>
+          <td style="font-size:12px;color:var(--text-muted);">{{ m.observacion or '—' }}</td>
+          <td style="font-size:12px;color:var(--text-muted);white-space:nowrap;">
+            {% if m.fecha_hora %}
+              {{ m.fecha_hora[:10] | fecha_cl }} a las {{ m.fecha_hora[11:16] }}
+            {% else %}
+              —
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty-state">
+    <div class="empty-icon">📭</div>
+    <h3>Sin movimientos registrados</h3>
+    <p>Los escaneos QR en la portería se registrarán aquí automáticamente.</p>
+  </div>
+  {% endif %}
+</div>
+
+{% endblock %}

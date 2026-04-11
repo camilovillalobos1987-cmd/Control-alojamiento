@@ -1,0 +1,468 @@
+{% extends "base.html" %}
+{% block title %}Mapa de Módulos{% endblock %}
+{% block page_title %}🏨 Mapa de Módulos{% endblock %}
+{% block page_subtitle %}Ocupación por camas — cada pieza tiene capacidad para 3 personas{% endblock %}
+
+{% block topbar_actions %}
+  <button onclick="openModal('modal-nueva-hab')" class="btn btn-secondary">➕ Nueva Habitación</button>
+{% endblock %}
+
+{% block content %}
+
+<!-- LEYENDA -->
+<div class="card mb-2">
+  <div style="display:flex;gap:24px;align-items:center;flex-wrap:wrap;">
+    <div style="font-size:12px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;">Leyenda:</div>
+    <div style="display:flex;align-items:center;gap:8px;font-size:13px;">
+      <div style="width:20px;height:20px;border-radius:5px;background:rgba(34,197,94,0.15);border:2px solid rgba(34,197,94,0.4);"></div>
+      <span style="color:#4ade80;font-weight:600;">Libre</span><span style="color:var(--text-muted);font-size:11px;">0 / 3 camas</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;font-size:13px;">
+      <div style="width:20px;height:20px;border-radius:5px;background:rgba(245,158,11,0.15);border:2px solid rgba(245,158,11,0.4);"></div>
+      <span style="color:#fbbf24;font-weight:600;">Parcial</span><span style="color:var(--text-muted);font-size:11px;">1–2 / 3 camas</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;font-size:13px;">
+      <div style="width:20px;height:20px;border-radius:5px;background:rgba(239,68,68,0.15);border:2px solid rgba(239,68,68,0.4);"></div>
+      <span style="color:#f87171;font-weight:600;">Completa</span><span style="color:var(--text-muted);font-size:11px;">3 / 3 camas</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;font-size:13px;">
+      <div style="width:20px;height:20px;border-radius:5px;background:rgba(100,116,139,0.1);border:2px solid rgba(100,116,139,0.3);"></div>
+      <span style="color:var(--text-muted);font-weight:600;">Mantenimiento</span>
+    </div>
+    <div style="width:1px;height:20px;background:rgba(255,255,255,0.08);margin:0 4px;"></div>
+    <div style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;">Censo hoy:</div>
+    <div style="display:flex;align-items:center;gap:6px;font-size:12px;">
+      <span style="background:rgba(34,197,94,0.15);border:1px solid rgba(34,197,94,0.4);border-radius:4px;padding:2px 6px;color:#4ade80;font-weight:700;">✓</span>
+      <span style="color:var(--text-muted);">Completo</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:6px;font-size:12px;">
+      <span style="background:rgba(251,191,36,0.15);border:1px solid rgba(251,191,36,0.4);border-radius:4px;padding:2px 6px;color:#fbbf24;font-weight:700;">~</span>
+      <span style="color:var(--text-muted);">Parcial</span>
+    </div>
+  </div>
+</div>
+
+<!-- MÓDULOS -->
+{% for modulo in modulos %}
+{% set habs_modulo = mapa[modulo] %}
+{% set total_habs = namespace(n=0) %}
+{% set libres = namespace(n=0) %}
+{% set parciales = namespace(n=0) %}
+{% set completas = namespace(n=0) %}
+{% set mant = namespace(n=0) %}
+{% for piso, piezas in habs_modulo.items() %}
+  {% for h in piezas %}
+    {% set total_habs.n = total_habs.n + 1 %}
+    {% if h.estado_visual == 'libre' %}{% set libres.n = libres.n + 1 %}
+    {% elif h.estado_visual == 'parcial' %}{% set parciales.n = parciales.n + 1 %}
+    {% elif h.estado_visual == 'completa' %}{% set completas.n = completas.n + 1 %}
+    {% else %}{% set mant.n = mant.n + 1 %}{% endif %}
+  {% endfor %}
+{% endfor %}
+
+<div class="modulo-section card mb-2">
+  <div class="modulo-header">
+    <div class="modulo-badge">{{ modulo }}</div>
+    <div>
+      <div style="font-size:16px;font-weight:700;color:var(--text-primary);">Módulo {{ modulo }}</div>
+      <div style="font-size:12px;color:var(--text-muted);">{{ total_habs.n }} piezas</div>
+    </div>
+    <div class="modulo-stats">
+      {% if libres.n > 0 %}<span class="modulo-stat ms-libre">🟢 {{ libres.n }} libres</span>{% endif %}
+      {% if parciales.n > 0 %}<span class="modulo-stat ms-parc">🟡 {{ parciales.n }} parciales</span>{% endif %}
+      {% if completas.n > 0 %}<span class="modulo-stat ms-comp">🔴 {{ completas.n }} completas</span>{% endif %}
+      {% if mant.n > 0 %}<span class="modulo-stat ms-mant">⚙️ {{ mant.n }} mant.</span>{% endif %}
+    </div>
+    <button onclick="abrirConfigModulo('{{ modulo }}')"
+            class="btn btn-secondary btn-sm" style="margin-left:auto;flex-shrink:0;">
+      ⚙️ Gestionar
+    </button>
+  </div>
+
+  {% for piso, piezas in habs_modulo.items() %}
+  <div style="margin-bottom:20px;">
+    <div style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;
+                letter-spacing:0.06em;margin-bottom:10px;display:flex;align-items:center;gap:8px;">
+      <span style="width:24px;height:24px;background:rgba(255,255,255,0.05);border-radius:6px;
+                   display:inline-flex;align-items:center;justify-content:center;">{{ piso }}</span>
+      Piso {{ piso }}
+    </div>
+    <div class="pieza-grid">
+      {% for h in piezas %}
+      {% set c = censo_hoy.get(h.id, {}) %}
+      {% set verificados = c.get('verificados', 0) %}
+      {% set total_asig  = c.get('total', 0) %}
+      <div class="pieza {{ h.estado_visual }}"
+           onclick="abrirModalPieza({{ h.id }}, '{{ modulo }}', {{ piso }}, '{{ h.numero }}', {{ h.ocupantes }}, {{ h.capacidad }}, '{{ h.estado }}')"
+           title="Pieza {{ h.numero }} · {{ h.activos }} activos / {{ h.asignados }} asignados / {{ h.capacidad }} camas{% if h.en_descanso %} · {{ h.en_descanso }} en descanso{% endif %}{% if verificados %} · Censo: {{ verificados }}/{{ total_asig }}{% endif %}"
+           style="position:relative;">
+        <span class="pieza-num">{{ h.numero }}</span>
+        <span class="pieza-ocup">
+          {% if h.estado == 'Mantenimiento' %}⚙️
+          {% elif h.en_descanso > 0 %}
+            <span style="color:#4ade80;font-weight:800;">{{ h.activos }}</span><span style="color:rgba(255,255,255,0.3);">/{{ h.capacidad }}</span>
+          {% else %}{{ h.activos }}/{{ h.capacidad }}{% endif %}
+        </span>
+        {# Indicador de trabajadores en descanso en esta pieza #}
+        {% if h.en_descanso > 0 %}
+        <span style="position:absolute;bottom:3px;left:3px;font-size:9px;font-weight:700;
+                     background:rgba(96,165,250,0.2);border:1px solid rgba(96,165,250,0.4);
+                     color:#60a5fa;border-radius:3px;padding:1px 3px;line-height:1;"
+              title="{{ h.en_descanso }} en descanso">{{ h.en_descanso }}💤</span>
+        {% endif %}
+        {% if verificados > 0 and total_asig > 0 %}
+          {% if verificados >= total_asig %}
+          <span style="position:absolute;top:3px;right:3px;font-size:9px;font-weight:800;
+                       background:rgba(34,197,94,0.25);border:1px solid rgba(34,197,94,0.6);
+                       color:#4ade80;border-radius:3px;padding:1px 3px;line-height:1;">✓</span>
+          {% else %}
+          <span style="position:absolute;top:3px;right:3px;font-size:9px;font-weight:800;
+                       background:rgba(251,191,36,0.2);border:1px solid rgba(251,191,36,0.5);
+                       color:#fbbf24;border-radius:3px;padding:1px 3px;line-height:1;">{{ verificados }}/{{ total_asig }}</span>
+          {% endif %}
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endfor %}
+
+<!-- ══ MODAL PIEZA ══════════════════════════════════════════ -->
+<div class="modal-backdrop" id="modal-pieza">
+  <div class="modal" style="max-width:520px;">
+    <div class="modal-title" id="mp-titulo">🏠 Detalles Pieza</div>
+
+    <!-- INDICADOR CAMAS -->
+    <div id="mp-camas-bar" style="margin-bottom:16px;">
+      <!-- JS lo rellena -->
+    </div>
+
+    <!-- LISTA DE OCUPANTES -->
+    <div id="mp-ocupantes-loading" style="text-align:center;padding:16px;display:none;">
+      <div style="color:var(--text-muted);font-size:13px;">⏳ Cargando…</div>
+    </div>
+    <div id="mp-ocupantes">
+      <!-- JS lo rellena -->
+    </div>
+
+    <!-- ASIGNAR TRABAJADOR (solo si hay camas libres) -->
+    <div id="mp-asignar-wrap" style="margin-top:14px;display:none;">
+      <div style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;
+                  letter-spacing:0.05em;margin-bottom:8px;">Asignar Trabajador</div>
+      <form id="mp-form-asignar" method="POST" action="{{ url_for('asignar_habitacion') }}"
+            style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;">
+        <input type="hidden" name="hab_id" id="mp-hab-id"/>
+        <div style="flex:1;min-width:200px;">
+          <select name="trabajador_id" class="form-control" required id="mp-select-trabajador">
+            <option value="">— Selecciona trabajador —</option>
+            {% for t in trabajadores_disponibles %}
+            <option value="{{ t.id }}">{{ t.nombre }} ({{ t.turno or 'sin turno' }})</option>
+            {% endfor %}
+          </select>
+        </div>
+        <button type="submit" class="btn btn-primary btn-sm">✅ Asignar</button>
+      </form>
+    </div>
+
+    <!-- ACCIONES: MANTENIMIENTO + ELIMINAR -->
+    <div style="margin-top:14px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+      <form id="mp-form-estado" method="POST" action="{{ url_for('cambiar_estado_habitacion', id=0) }}">
+        <input type="hidden" name="estado" id="mp-estado-val"/>
+        <button type="submit" id="mp-btn-estado" class="btn btn-secondary btn-sm">⚙️ Cambiar estado</button>
+      </form>
+      <form id="mp-form-eliminar" method="POST" action=""
+            onsubmit="return confirm('¿Eliminar esta pieza? Los trabajadores asignados quedarán sin habitación.')">
+        <button type="submit" class="btn btn-sm"
+                style="background:rgba(239,68,68,0.1);color:#ef4444;border:1px solid rgba(239,68,68,0.3);">
+          🗑️ Eliminar Pieza
+        </button>
+      </form>
+    </div>
+
+    <div class="modal-footer" style="margin-top:14px;">
+      <button onclick="closeModal('modal-pieza')" class="btn btn-secondary">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL NUEVA HABITACIÓN ══════════════════════════════ -->
+<div class="modal-backdrop" id="modal-nueva-hab">
+  <div class="modal" style="max-width:400px;">
+    <div class="modal-title">➕ Nueva Habitación</div>
+    <form method="POST" action="{{ url_for('nueva_habitacion') }}">
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Módulo</label>
+          <input type="text" name="modulo" class="form-control" placeholder="Ej: E" required/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Piso</label>
+          <input type="number" name="piso" class="form-control" value="1" min="1" required/>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">N° Pieza</label>
+          <input type="text" name="numero" class="form-control" placeholder="Ej: 42" required/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Capacidad (camas)</label>
+          <input type="number" name="capacidad" class="form-control" value="3" min="1" max="10"/>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" onclick="closeModal('modal-nueva-hab')" class="btn btn-secondary">Cancelar</button>
+        <button type="submit" class="btn btn-primary">Crear Habitación</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ══ MODAL GESTIÓN DE MÓDULO ══════════════════════════════ -->
+<div class="modal-backdrop" id="modal-config-modulo">
+  <div class="modal" style="max-width:480px;">
+    <div class="modal-title">⚙️ Gestionar Módulo <span id="cfg-titulo-modulo" style="color:var(--accent);"></span></div>
+
+    <!-- RENOMBRAR -->
+    <div style="margin-bottom:20px;">
+      <div style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;
+                  letter-spacing:0.06em;margin-bottom:10px;">Renombrar Módulo</div>
+      <form id="cfg-form-renombrar" method="POST" action="{{ url_for('renombrar_modulo') }}"
+            style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+        <input type="hidden" name="modulo_actual" id="cfg-modulo-actual"/>
+        <div style="display:flex;align-items:center;gap:8px;flex:1;flex-wrap:wrap;">
+          <span style="font-size:13px;color:var(--text-muted);">Módulo</span>
+          <span id="cfg-nombre-actual" style="font-weight:700;font-size:15px;color:var(--text-primary);
+                min-width:32px;text-align:center;background:rgba(255,255,255,0.06);
+                border-radius:6px;padding:4px 10px;"></span>
+          <span style="color:var(--text-muted);">→</span>
+          <input type="text" name="modulo_nuevo" id="cfg-modulo-nuevo" maxlength="10" required
+                 class="form-control" style="width:90px;text-transform:uppercase;"
+                 placeholder="Ej: B2"/>
+        </div>
+        <button type="submit" class="btn btn-primary btn-sm">Renombrar</button>
+      </form>
+    </div>
+
+    <!-- AGREGAR PIEZAS -->
+    <div style="margin-bottom:20px;border-top:1px solid var(--border);padding-top:16px;">
+      <div style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;
+                  letter-spacing:0.06em;margin-bottom:10px;">Agregar Piezas</div>
+      <form id="cfg-form-agregar" method="POST" action="{{ url_for('agregar_piezas_modulo') }}">
+        <input type="hidden" name="modulo" id="cfg-agregar-modulo"/>
+        <div class="form-row" style="gap:10px;margin-bottom:10px;">
+          <div class="form-group" style="flex:1;">
+            <label class="form-label" style="font-size:11px;">Piso</label>
+            <input type="number" name="piso" min="1" max="20" value="1" class="form-control" required/>
+          </div>
+          <div class="form-group" style="flex:1;">
+            <label class="form-label" style="font-size:11px;">Cantidad de Piezas</label>
+            <input type="number" name="cantidad" min="1" max="50" value="10" class="form-control" required/>
+          </div>
+          <div class="form-group" style="flex:1;">
+            <label class="form-label" style="font-size:11px;">Capacidad (camas)</label>
+            <input type="number" name="capacidad" min="1" max="10" value="3" class="form-control" required/>
+          </div>
+        </div>
+        <button type="submit" class="btn btn-primary btn-sm">➕ Agregar Piezas</button>
+      </form>
+    </div>
+
+    <!-- ZONA DE PELIGRO: ELIMINAR MÓDULO -->
+    <div style="border:1px solid rgba(239,68,68,0.25);border-radius:10px;padding:14px;
+                background:rgba(239,68,68,0.05);">
+      <div style="font-size:11px;font-weight:700;color:#ef4444;text-transform:uppercase;
+                  letter-spacing:0.06em;margin-bottom:8px;">⚠️ Zona de Peligro</div>
+      <p style="font-size:12px;color:var(--text-muted);margin-bottom:12px;line-height:1.6;">
+        Eliminar el módulo completo borrará <strong style="color:var(--text-secondary);">todas sus piezas</strong>
+        y desvinculará a los trabajadores asignados. Esta acción <strong style="color:#ef4444;">no se puede deshacer</strong>.
+      </p>
+      <form id="cfg-form-eliminar-modulo" method="POST" action="{{ url_for('eliminar_modulo') }}"
+            onsubmit="return confirmarEliminarModulo(this)">
+        <input type="hidden" name="modulo" id="cfg-eliminar-modulo"/>
+        <button type="submit" class="btn btn-sm"
+                style="background:rgba(239,68,68,0.15);color:#ef4444;border:1px solid rgba(239,68,68,0.4);">
+          🗑️ Eliminar Módulo <span id="cfg-eliminar-nombre"></span>
+        </button>
+      </form>
+    </div>
+
+    <div class="modal-footer" style="margin-top:16px;">
+      <button onclick="closeModal('modal-config-modulo')" class="btn btn-secondary">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+// ── Estado del modal ──────────────────────────────────────
+let _habId     = null;
+let _habEstado = null;
+
+function abrirModalPieza(id, modulo, piso, numero, ocupantes, capacidad, estado) {
+  _habId     = id;
+  _habEstado = estado;
+
+  document.getElementById('mp-titulo').textContent =
+    `🏠 Módulo ${modulo} · Piso ${piso} · Pieza ${numero}`;
+
+  renderBarraCamas(ocupantes, capacidad);
+  document.getElementById('mp-hab-id').value = id;
+
+  const libre = (ocupantes < capacidad) && estado !== 'Mantenimiento';
+  document.getElementById('mp-asignar-wrap').style.display = libre ? 'block' : 'none';
+
+  const btnEstado  = document.getElementById('mp-btn-estado');
+  const inpEstado  = document.getElementById('mp-estado-val');
+  const formEstado = document.getElementById('mp-form-estado');
+  const accion = (estado === 'Mantenimiento') ? 'Disponible' : 'Mantenimiento';
+  btnEstado.textContent = (estado === 'Mantenimiento') ? '✅ Marcar Disponible' : '🔧 Marcar Mantenimiento';
+  inpEstado.value  = accion;
+  formEstado.action = `/habitaciones/${id}/estado`;
+
+  // Formulario eliminar pieza
+  document.getElementById('mp-form-eliminar').action = `/habitaciones/${id}/eliminar`;
+
+  cargarOcupantes(id, capacidad);
+  openModal('modal-pieza');
+}
+
+// ── Modal Gestión de Módulo ───────────────────────────────
+function abrirConfigModulo(modulo) {
+  document.getElementById('cfg-titulo-modulo').textContent    = modulo;
+  document.getElementById('cfg-nombre-actual').textContent    = modulo;
+  document.getElementById('cfg-modulo-actual').value          = modulo;
+  document.getElementById('cfg-modulo-nuevo').value           = modulo;
+  document.getElementById('cfg-agregar-modulo').value         = modulo;
+  document.getElementById('cfg-eliminar-modulo').value        = modulo;
+  document.getElementById('cfg-eliminar-nombre').textContent  = modulo;
+  openModal('modal-config-modulo');
+}
+
+function confirmarEliminarModulo(form) {
+  const modulo = document.getElementById('cfg-eliminar-modulo').value;
+  const ok = confirm(
+    `¿Eliminar el Módulo "${modulo}" completo?\n\n` +
+    `Se borrarán TODAS sus piezas y los trabajadores asignados quedarán sin habitación.\n\n` +
+    `Esta acción NO se puede deshacer.`
+  );
+  return ok;
+}
+
+function renderBarraCamas(ocupantes, capacidad) {
+  const libre  = capacidad - ocupantes;
+  const pct    = Math.round((ocupantes / capacidad) * 100);
+  const color  = ocupantes === 0 ? '#4ade80' : (ocupantes >= capacidad ? '#f87171' : '#fbbf24');
+  const label  = ocupantes === 0 ? 'Libre' : (ocupantes >= capacidad ? 'Completa' : 'Parcialmente ocupada');
+
+  let camas = '';
+  for (let i = 0; i < capacidad; i++) {
+    const activa = i < ocupantes;
+    camas += `<div style="flex:1;height:28px;border-radius:6px;
+                          background:${activa ? color : 'rgba(255,255,255,0.06)'};
+                          border:2px solid ${activa ? color : 'rgba(255,255,255,0.1)'};
+                          transition:all 0.3s ease;" title="Cama ${i+1}"></div>`;
+  }
+
+  document.getElementById('mp-camas-bar').innerHTML = `
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+      <span style="font-size:12px;font-weight:700;text-transform:uppercase;
+                   letter-spacing:0.05em;color:var(--text-muted);">Ocupación de Camas</span>
+      <span style="font-size:13px;font-weight:700;color:${color};">${label} · ${ocupantes}/${capacidad}</span>
+    </div>
+    <div style="display:flex;gap:6px;">${camas}</div>
+  `;
+}
+
+function cargarOcupantes(habId, capacidad) {
+  const cont = document.getElementById('mp-ocupantes');
+  const load = document.getElementById('mp-ocupantes-loading');
+  cont.innerHTML = '';
+  load.style.display = 'block';
+
+  fetch(`/api/habitaciones/${habId}/ocupantes`)
+    .then(r => r.json())
+    .then(data => {
+      load.style.display = 'none';
+      if (!data.ocupantes || data.ocupantes.length === 0) {
+        cont.innerHTML = `<div style="text-align:center;padding:12px;color:var(--text-muted);font-size:13px;">
+          🛏️ Ningún trabajador asignado actualmente
+        </div>`;
+        return;
+      }
+
+      const estadoColor = {
+        'Activo en campamento': '#4ade80',
+        'En descanso': '#60a5fa',
+        'Permiso': '#fbbf24',
+        'Licencia Médica': '#fbbf24',
+        'Vacaciones': '#c084fc',
+        'Falla': '#f87171',
+      };
+
+      let html = `<div style="font-size:11px;font-weight:700;color:var(--text-muted);
+                              text-transform:uppercase;letter-spacing:0.05em;margin-bottom:8px;">
+                   Ocupantes (${data.ocupantes.length}/${capacidad})
+                 </div>
+                 <div style="display:flex;flex-direction:column;gap:8px;">`;
+
+      data.ocupantes.forEach((t, i) => {
+        const c = estadoColor[t.estado] || '#94a3b8';
+
+        // Estado de turno calculado hoy (Activo / En descanso)
+        let turnoTag = '';
+        if (t.estado_turno_hoy === 'Activo en campamento') {
+          const dias = t.dias_restantes != null ? ` · ${t.dias_restantes}d restantes` : '';
+          const bajada = t.fecha_bajada ? ` · Baja: ${t.fecha_bajada}` : '';
+          turnoTag = `<span style="font-size:10px;font-weight:700;padding:2px 6px;border-radius:10px;
+                                   background:rgba(34,197,94,0.15);color:#4ade80;white-space:nowrap;">
+                        🟢 En faena${dias}${bajada}
+                      </span>`;
+        } else if (t.estado_turno_hoy === 'En descanso') {
+          const retorno = t.fecha_retorno ? ` · Retorna: ${t.fecha_retorno}` : '';
+          turnoTag = `<span style="font-size:10px;font-weight:700;padding:2px 6px;border-radius:10px;
+                                   background:rgba(96,165,250,0.15);color:#60a5fa;white-space:nowrap;">
+                        🔵 En descanso${retorno}
+                      </span>`;
+        }
+
+        html += `
+          <div style="display:flex;align-items:center;gap:12px;padding:10px 12px;
+                      background:rgba(255,255,255,0.04);border-radius:8px;
+                      border:1px solid rgba(255,255,255,0.06);">
+            <div style="width:36px;height:36px;border-radius:50%;
+                        background:linear-gradient(135deg,#3b82f6,#6366f1);
+                        display:flex;align-items:center;justify-content:center;
+                        font-weight:700;font-size:14px;color:#fff;flex-shrink:0;">
+              ${t.nombre[0]}
+            </div>
+            <div style="flex:1;min-width:0;">
+              <div style="font-weight:600;font-size:13px;color:var(--text-primary);">
+                ${t.nombre}
+              </div>
+              <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">
+                ${t.cargo || '—'} · <span style="color:#60a5fa;">${t.turno || 'Sin turno'}</span>
+              </div>
+              ${turnoTag ? `<div style="margin-top:5px;">${turnoTag}</div>` : ''}
+            </div>
+            <div style="flex-shrink:0;">
+              <span style="font-size:11px;font-weight:600;padding:3px 8px;border-radius:20px;
+                           background:${c}22;color:${c};">${t.estado}</span>
+            </div>
+          </div>`;
+      });
+
+      html += '</div>';
+      cont.innerHTML = html;
+    })
+    .catch(() => {
+      load.style.display = 'none';
+      cont.innerHTML = `<div style="color:var(--red);font-size:13px;">❌ Error al cargar ocupantes</div>`;
+    });
+}
+</script>
+{% endblock %}

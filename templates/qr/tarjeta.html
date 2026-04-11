@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>Tarjeta QR — {{ t.nombre }}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet"/>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Inter', sans-serif;
+      background: #0f172a;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 32px;
+      gap: 24px;
+    }
+    .print-actions {
+      display: flex; gap: 12px;
+    }
+    .btn-print {
+      background: #3b82f6; color: #fff; border: none;
+      padding: 10px 24px; border-radius: 8px;
+      font-size: 14px; font-weight: 600; cursor: pointer;
+      font-family: 'Inter', sans-serif;
+    }
+    .btn-back {
+      background: rgba(255,255,255,0.08); color: #94a3b8;
+      border: 1px solid rgba(255,255,255,0.1);
+      padding: 10px 24px; border-radius: 8px;
+      font-size: 14px; font-weight: 600; cursor: pointer;
+      text-decoration: none; font-family: 'Inter', sans-serif;
+      display: inline-flex; align-items: center;
+    }
+
+    /* ── TARJETA ── */
+    .tarjeta {
+      width: 340px;
+      background: #fff;
+      border-radius: 18px;
+      overflow: hidden;
+      box-shadow: 0 24px 48px rgba(0,0,0,0.6);
+      font-family: 'Inter', sans-serif;
+    }
+
+    .tarjeta-header {
+      background: linear-gradient(135deg, #0f2044 0%, #1e3a5f 100%);
+      padding: 20px 22px 16px;
+      color: #fff;
+      position: relative;
+    }
+
+    .tarjeta-header-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 12px;
+    }
+
+    .tarjeta-logo-text {
+      font-size: 10px; font-weight: 700;
+      letter-spacing: 0.1em; text-transform: uppercase;
+      opacity: 0.7;
+      line-height: 1.4;
+    }
+
+    .tarjeta-tipo {
+      background: rgba(255,255,255,0.15);
+      font-size: 9px; font-weight: 700;
+      letter-spacing: 0.08em; text-transform: uppercase;
+      padding: 4px 10px; border-radius: 20px;
+    }
+
+    .tarjeta-nombre {
+      font-size: 20px; font-weight: 800;
+      line-height: 1.2; margin-bottom: 2px;
+    }
+
+    .tarjeta-cargo {
+      font-size: 12px; opacity: 0.7; margin-bottom: 2px;
+    }
+
+    .tarjeta-rut {
+      font-size: 11px; opacity: 0.5;
+      font-family: 'Courier New', monospace;
+    }
+
+    .tarjeta-body {
+      display: flex;
+      gap: 0;
+    }
+
+    .tarjeta-datos {
+      flex: 1;
+      padding: 16px 18px;
+    }
+
+    .tarjeta-dato {
+      margin-bottom: 10px;
+    }
+
+    .tarjeta-dato-label {
+      font-size: 9px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #94a3b8;
+      margin-bottom: 2px;
+    }
+
+    .tarjeta-dato-value {
+      font-size: 14px;
+      font-weight: 700;
+      color: #1e293b;
+    }
+
+    .tarjeta-hab {
+      background: linear-gradient(135deg, #3b82f6, #6366f1);
+      color: #fff;
+      border-radius: 8px;
+      padding: 8px 12px;
+      margin-bottom: 10px;
+    }
+
+    .tarjeta-hab-titulo {
+      font-size: 9px; font-weight: 600;
+      text-transform: uppercase; letter-spacing: 0.06em;
+      opacity: 0.8; margin-bottom: 4px;
+    }
+
+    .tarjeta-hab-valor {
+      font-size: 16px; font-weight: 800; line-height: 1.2;
+    }
+
+    .tarjeta-qr-panel {
+      width: 164px;
+      background: #f8fafc;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 14px 10px;
+      border-left: 1px solid #e2e8f0;
+    }
+
+    .tarjeta-qr-panel img {
+      width: 144px; height: 144px;
+      border-radius: 6px;
+      background: #fff;
+      padding: 4px;
+      border: 2px solid #e2e8f0;
+    }
+
+    .tarjeta-qr-panel p {
+      font-size: 8px; color: #94a3b8;
+      margin-top: 6px; text-align: center;
+      line-height: 1.4;
+    }
+
+    .tarjeta-footer {
+      background: #f1f5f9;
+      padding: 10px 18px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-top: 1px solid #e2e8f0;
+    }
+
+    .tarjeta-turno-badge {
+      background: linear-gradient(135deg, #3b82f6, #6366f1);
+      color: #fff;
+      font-size: 11px; font-weight: 700;
+      padding: 4px 12px; border-radius: 20px;
+    }
+
+    .tarjeta-footer-meta {
+      font-size: 9px; color: #94a3b8; text-align: right; line-height: 1.5;
+    }
+
+    /* PRINT */
+    @media print {
+      body { background: #fff; padding: 0; justify-content: flex-start; }
+      .print-actions { display: none; }
+      .tarjeta { box-shadow: none; border: 1px solid #e2e8f0; border-radius: 12px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ACCIONES (solo en pantalla) -->
+  <div class="print-actions no-print">
+    <a href="{{ url_for('trabajador_detalle', id=t.id) }}" class="btn-back">← Volver</a>
+    <button class="btn-print" onclick="window.print()">🖨️ Imprimir Tarjeta</button>
+    <a href="{{ url_for('descargar_qr', id=t.id) }}" class="btn-back">⬇️ Descargar QR</a>
+  </div>
+
+  <!-- TARJETA -->
+  <div class="tarjeta">
+    <!-- HEADER -->
+    <div class="tarjeta-header">
+      <div class="tarjeta-header-top">
+        <div class="tarjeta-logo-text">{{ NOMBRE_EMPRESA }}<br/>Credencial de Acceso</div>
+        <div class="tarjeta-tipo">Campamento</div>
+      </div>
+      <div class="tarjeta-nombre">{{ t.nombre }}</div>
+      <div class="tarjeta-cargo">{{ t.cargo or 'Trabajador' }}</div>
+      <div class="tarjeta-rut">{{ t.rut }}</div>
+    </div>
+
+    <!-- BODY -->
+    <div class="tarjeta-body">
+      <!-- Datos izquierda -->
+      <div class="tarjeta-datos">
+        {% if t.modulo %}
+        <div class="tarjeta-hab">
+          <div class="tarjeta-hab-titulo">Habitación Asignada</div>
+          <div class="tarjeta-hab-valor">Mód. {{ t.modulo }} · P{{ t.piso }} · {{ t.pieza }}</div>
+        </div>
+        {% else %}
+        <div style="background:#fff8e1;border:1px solid #fbbf24;border-radius:8px;padding:8px 12px;margin-bottom:10px;">
+          <div style="font-size:10px;color:#92400e;font-weight:700;">Sin habitación asignada</div>
+        </div>
+        {% endif %}
+
+        <div class="tarjeta-dato">
+          <div class="tarjeta-dato-label">Turno</div>
+          <div class="tarjeta-dato-value">{{ t.turno or '—' }}</div>
+        </div>
+
+        <div class="tarjeta-dato">
+          <div class="tarjeta-dato-label">Estado</div>
+          <div class="tarjeta-dato-value" style="font-size:12px;">{{ t.estado }}</div>
+        </div>
+      </div>
+
+      <!-- QR derecha -->
+      <div class="tarjeta-qr-panel">
+        {% if qr_b64 %}
+        <img src="data:image/png;base64,{{ qr_b64 }}" alt="QR de acceso"/>
+        <p>Escanear en<br/>portería de acceso</p>
+        {% else %}
+        <div style="width:112px;height:112px;background:#f1f5f9;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:24px;">🚫</div>
+        <p>QR no disponible</p>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- FOOTER -->
+    <div class="tarjeta-footer">
+      <div class="tarjeta-turno-badge">{{ t.turno or '—' }}</div>
+      <div class="tarjeta-footer-meta">
+        Emitido: {{ hoy }}<br/>
+        Solo uso interno
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>

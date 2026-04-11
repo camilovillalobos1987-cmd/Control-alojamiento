@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block title %}Página no encontrada{% endblock %}
+{% block content %}
+<div style="text-align:center;padding:80px 24px;">
+  <div style="font-size:80px;margin-bottom:16px;">🏕️</div>
+  <h1 style="font-size:48px;font-weight:800;color:var(--accent);margin-bottom:8px;">404</h1>
+  <p style="font-size:18px;color:var(--text-secondary);margin-bottom:24px;">Página no encontrada</p>
+  <a href="{{ url_for('dashboard') }}" class="btn btn-primary">← Volver al Dashboard</a>
+</div>
+{% endblock %}

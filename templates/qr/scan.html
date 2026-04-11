@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+{% block title %}Portería — Escáner QR{% endblock %}
+{% block page_title %}📷 Portería{% endblock %}
+{% block page_subtitle %}Escáner de acceso al campamento{% endblock %}
+
+{% block topbar_actions %}
+  <button onclick="stopScanner()" class="btn btn-secondary" id="btn-stop-scan">⏹ Detener Cámara</button>
+  <button onclick="startScanner()" class="btn btn-primary" id="btn-start-scan" style="display:none;">▶ Iniciar Cámara</button>
+  <button onclick="toggleCenso()" class="btn btn-secondary" id="btn-censo">📋 Modo Censo</button>
+{% endblock %}
+
+{% block content %}
+<div style="max-width:680px;margin:0 auto;">
+
+  <!-- BANNER MODO CENSO -->
+  <div id="censo-banner" style="display:none;background:rgba(251,191,36,0.12);border:1px solid rgba(251,191,36,0.35);
+       border-radius:10px;padding:10px 16px;margin-bottom:14px;display:none;
+       align-items:center;gap:10px;font-size:13px;font-weight:600;color:#fbbf24;">
+    <span style="font-size:18px;">📋</span>
+    <div>
+      <div>MODO CENSO ACTIVO</div>
+      <div style="font-size:11px;font-weight:400;color:#94a3b8;margin-top:1px;">
+        Escanea el QR de cada trabajador para verificar su presencia. No registra Entrada/Salida.
+      </div>
+    </div>
+  </div>
+
+  <!-- STATUS GENERAL -->
+  <div style="text-align:center;margin-bottom:20px;">
+    <div style="font-size:13px;color:var(--text-secondary);" id="scan-status">
+      Iniciando cámara...
+    </div>
+  </div>
+
+  <!-- VIDEO SCANNER -->
+  <div class="card mb-2">
+    <div class="scanner-video-wrap">
+      <video id="qr-video" autoplay playsinline muted></video>
+      <div class="scanner-overlay">
+        <div class="scanner-frame">
+          <div class="scan-line"></div>
+        </div>
+      </div>
+    </div>
+    <!-- canvas oculto para captura -->
+    <canvas id="qr-canvas" style="display:none;"></canvas>
+  </div>
+
+  <!-- RESULTADO DEL ESCANEO -->
+  <div id="scan-result" class="scan-result" style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:120px;background:rgba(255,255,255,0.03);border:1px dashed var(--border);border-radius:var(--radius);">
+    <div style="font-size:32px;margin-bottom:8px;">📱</div>
+    <div style="color:var(--text-muted);font-size:13px;">El resultado del escaneo aparecerá aquí</div>
+  </div>
+
+  <!-- INSTRUCCIONES -->
+  <div class="card mt-2">
+    <div class="card-title">📖 Instrucciones de Uso</div>
+    <div class="scan-instructions-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:13px;color:var(--text-secondary);">
+      <div class="flex-center gap-1">
+        <span style="font-size:20px;">1️⃣</span>
+        <span>Apunta la cámara al código QR del trabajador</span>
+      </div>
+      <div class="flex-center gap-1">
+        <span style="font-size:20px;">2️⃣</span>
+        <span>El sistema detecta y valida automáticamente</span>
+      </div>
+      <div class="flex-center gap-1">
+        <span style="font-size:20px;">3️⃣</span>
+        <span>Se registra Entrada o Salida según el último movimiento</span>
+      </div>
+      <div class="flex-center gap-1">
+        <span style="font-size:20px;">4️⃣</span>
+        <span>Espera 3 segundos antes del siguiente escaneo</span>
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+<script src="{{ url_for('static', filename='js/scanner.js') }}"></script>
+<script>
+// Swapear botones al iniciar/detener
+const origStart = startScanner;
+const origStop  = stopScanner;
+
+window.startScanner = function() {
+  origStart();
+  document.getElementById('btn-start-scan').style.display = 'none';
+  document.getElementById('btn-stop-scan').style.display  = '';
+};
+
+window.stopScanner = function() {
+  origStop();
+  document.getElementById('btn-start-scan').style.display = '';
+  document.getElementById('btn-stop-scan').style.display  = 'none';
+};
+</script>
+{% endblock %}

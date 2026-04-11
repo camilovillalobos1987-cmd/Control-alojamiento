@@ -1,0 +1,200 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+{% block page_subtitle %}Resumen en tiempo real · <span id="last-refresh">{{ hoy }}</span>{% endblock %}
+
+{% block topbar_actions %}
+  <a href="{{ url_for('trabajador_nuevo') }}" class="btn btn-primary">
+    ➕ Nuevo Trabajador
+  </a>
+{% endblock %}
+
+{% block content %}
+<div data-auto-refresh="true">
+
+<!-- ══ KPI CARDS ══ -->
+<div class="kpi-grid">
+  <div class="kpi-card kpi-blue">
+    <div class="kpi-icon">👷</div>
+    <div class="kpi-info">
+      <div class="kpi-value" id="kpi-campamento">{{ metricas.en_campamento }}</div>
+      <div class="kpi-label">En Campamento</div>
+      <div class="kpi-sub">de {{ metricas.total_trabajadores }} totales</div>
+    </div>
+  </div>
+
+  <div class="kpi-card kpi-green">
+    <div class="kpi-icon">🏖️</div>
+    <div class="kpi-info">
+      <div class="kpi-value" id="kpi-descanso">{{ metricas.en_descanso }}</div>
+      <div class="kpi-label">En Descanso</div>
+      <div class="kpi-sub">Fuera del campamento</div>
+    </div>
+  </div>
+
+  <div class="kpi-card kpi-yellow">
+    <div class="kpi-icon">🏥</div>
+    <div class="kpi-info">
+      <div class="kpi-value" id="kpi-licencia">{{ metricas.con_licencia }}</div>
+      <div class="kpi-label">Licencias / Permisos</div>
+      <div class="kpi-sub">Vacaciones, Fallas, LM</div>
+    </div>
+  </div>
+
+  <div class="kpi-card kpi-red">
+    <div class="kpi-icon">🚪</div>
+    <div class="kpi-info">
+      <div class="kpi-value" id="kpi-ocupacion">{{ metricas.pct_ocupacion }}%</div>
+      <div class="kpi-label">Ocupación Total</div>
+      <div class="kpi-sub">{{ metricas.camas_ocupadas }} / {{ metricas.total_camas }} camas</div>
+    </div>
+  </div>
+
+  <div class="kpi-card kpi-green">
+    <div class="kpi-icon">✅</div>
+    <div class="kpi-info">
+      <div class="kpi-value" id="kpi-disponibles">{{ metricas.libres }}</div>
+      <div class="kpi-label">Piezas Libres</div>
+      <div class="kpi-sub">{{ metricas.parciales }} parciales · {{ metricas.completas }} completas</div>
+    </div>
+  </div>
+
+  <div class="kpi-card kpi-yellow">
+    <div class="kpi-icon">🔧</div>
+    <div class="kpi-info">
+      <div class="kpi-value">{{ metricas.mantenimiento }}</div>
+      <div class="kpi-label">En Mantenimiento</div>
+      <div class="kpi-sub">Temporalmente fuera</div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ FILA GRÁFICOS + ACTIVIDAD ══ -->
+<div class="grid-1-2 mb-3">
+
+  <!-- DONUT OCUPACIÓN -->
+  <div class="card">
+    <div class="card-title">🏨 Estado de Piezas</div>
+    <div style="height:240px;position:relative;">
+      <canvas id="ocupacionChart"
+        data-ocupadas="{{ metricas.completas }}"
+        data-parciales="{{ metricas.parciales }}"
+        data-disponibles="{{ metricas.libres }}"
+        data-mant="{{ metricas.mantenimiento }}">
+      </canvas>
+    </div>
+  </div>
+
+  <!-- FEED DE ACTIVIDAD -->
+  <div class="card">
+    <div class="card-title">⚡ Últimos Movimientos</div>
+    <div class="activity-feed">
+      {% for mov in metricas.ultimos_movimientos %}
+      <div class="activity-item">
+        <div class="activity-dot {{ mov.tipo|lower }}"></div>
+        <div class="activity-info">
+          <div class="activity-name">{{ mov.nombre }}</div>
+          <div class="activity-meta">
+            {{ mov.tipo }}
+            {% if mov.modulo %} · Mód. {{ mov.modulo }} – Piso {{ mov.piso }} – P. {{ mov.pieza }}{% endif %}
+          </div>
+        </div>
+        <div class="activity-time">{{ mov.fecha_hora[-8:-3] if mov.fecha_hora else '' }}</div>
+      </div>
+      {% else %}
+      <div class="empty-state">
+        <div class="empty-icon">📭</div>
+        <h3>Sin movimientos aún</h3>
+        <p>Los escaneos QR aparecerán aquí</p>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+<!-- ══ GRÁFICO TURNOS + LLEGADAS ══ -->
+<div class="grid-2 mb-3">
+  <!-- DISTRIBUCIÓN POR TURNO -->
+  <div class="card">
+    <div class="card-title">🔄 Distribución por Turno</div>
+    <div style="height:220px;position:relative;">
+      <canvas id="turnosChart"
+        data-turnos='{{ metricas.por_turno | tojson }}'>
+      </canvas>
+    </div>
+  </div>
+
+  <!-- PRÓXIMAS LLEGADAS -->
+  <div class="card">
+    <div class="card-title">📅 Próximas Llegadas (48h)</div>
+    {% if llegadas %}
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr><th>Trabajador</th><th>Turno</th><th>Módulo</th><th>Fecha Retorno</th></tr>
+        </thead>
+        <tbody>
+          {% for t in llegadas %}
+          <tr>
+            <td>
+              <div class="flex-center gap-1">
+                <div class="avatar">{{ t.nombre[0] }}</div>
+                <div>
+                  <div style="font-weight:600;color:var(--text-primary);">{{ t.nombre }}</div>
+                  <div style="font-size:11px;color:var(--text-muted);">{{ t.cargo }}</div>
+                </div>
+              </div>
+            </td>
+            <td><span class="badge badge-blue">{{ t.turno }}</span></td>
+            <td>
+              {% if t.modulo %}
+                Mód. {{ t.modulo }} – P{{ t.piso }} – {{ t.pieza }}
+              {% else %}
+                <span class="text-red" style="font-size:11px;">Sin asignar</span>
+              {% endif %}
+            </td>
+            <td>
+              <span class="badge badge-yellow">{{ t.fecha_retorno | fecha_cl }}</span>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="empty-state" style="padding:24px;">
+      <div class="empty-icon">✅</div>
+      <h3>Sin llegadas próximas</h3>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- ══ RESUMEN POR MÓDULO ══ -->
+<div class="card mb-3">
+  <div class="card-title">🏗️ Estado por Módulo</div>
+  <div class="grid-2" style="gap:16px;">
+    {% for mod in metricas.por_modulo %}
+    <div style="background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:10px;padding:16px;">
+      <div class="flex-center justify-between mb-1">
+        <div class="flex-center gap-1">
+          <div class="modulo-badge">{{ mod.modulo }}</div>
+          <span style="font-size:14px;font-weight:700;">Módulo {{ mod.modulo }}</span>
+        </div>
+        <span style="font-size:12px;color:var(--text-muted);">{{ mod.total }} piezas · {{ mod.total_camas }} camas</span>
+      </div>
+      <div class="progress-bar mb-1">
+        <div class="progress-fill" style="width:{{ (mod.ocupantes / mod.total_camas * 100)|round|int if mod.total_camas > 0 else 0 }}%"></div>
+      </div>
+      <div class="modulo-stats">
+        <span class="modulo-stat ms-libre">🟢 {{ mod.total_camas - mod.ocupantes }} camas libres</span>
+        <span class="modulo-stat ms-comp">🔴 {{ mod.ocupantes }} ocupadas</span>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+</div><!-- end auto-refresh -->
+{% endblock %}

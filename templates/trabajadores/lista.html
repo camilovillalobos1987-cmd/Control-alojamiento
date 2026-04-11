@@ -1,0 +1,168 @@
+{% extends "base.html" %}
+{% block title %}Trabajadores{% endblock %}
+{% block page_title %}Trabajadores{% endblock %}
+{% block page_subtitle %}{{ total }} resultado(s) encontrado(s){% endblock %}
+
+{% block topbar_actions %}
+  <a href="{{ url_for('trabajadores_importar') }}" class="btn btn-secondary">📥 Importar CSV</a>
+  <button type="button" class="btn btn-secondary" onclick="openModal('modal-asignar-masivo')">🎲 Asignar Habitaciones Masivo</button>
+  <a href="{{ url_for('trabajador_nuevo') }}" class="btn btn-primary">➕ Nuevo</a>
+{% endblock %}
+
+{% block content %}
+
+<!-- FILTROS -->
+<div class="card mb-2">
+  <form method="GET" action="{{ url_for('trabajadores_lista') }}">
+    <div class="search-bar">
+      <div class="search-input-wrap" style="flex:2;">
+        <span class="search-icon">🔍</span>
+        <input type="text" name="q" class="search-input" placeholder="Buscar por nombre o RUT..."
+               value="{{ busqueda }}" id="search-q"/>
+      </div>
+      <select name="estado" class="form-control-sm" id="filter-estado">
+        <option value="">Todos los estados</option>
+        {% for e in estados %}
+        <option value="{{ e }}" {{ 'selected' if estado_filtro == e }}>{{ e }}</option>
+        {% endfor %}
+      </select>
+      <select name="turno" class="form-control-sm" id="filter-turno">
+        <option value="">Todos los turnos</option>
+        {% for t in turnos %}
+        <option value="{{ t }}" {{ 'selected' if turno_filtro == t }}>{{ t }}</option>
+        {% endfor %}
+      </select>
+      <button type="submit" class="btn btn-primary btn-sm">Filtrar</button>
+      <a href="{{ url_for('trabajadores_lista') }}" class="btn btn-secondary btn-sm">Limpiar</a>
+    </div>
+  </form>
+</div>
+
+<!-- TABLA -->
+<div class="card">
+  {% if trabajadores %}
+  <div class="table-container">
+    <table id="tabla-trabajadores">
+      <thead>
+        <tr>
+          <th>Trabajador</th>
+          <th>RUT</th>
+          <th>Cargo</th>
+          <th>Turno</th>
+          <th>Estado</th>
+          <th>Habitación</th>
+          <th>QR</th>
+          <th>Acción</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for t in trabajadores %}
+        <tr>
+          <td>
+            <div class="flex-center gap-1">
+              <div class="avatar">{{ t.nombre[0] }}</div>
+              <span style="font-weight:600;color:var(--text-primary);">{{ t.nombre }}</span>
+            </div>
+          </td>
+          <td class="font-mono" style="font-size:12px;">{{ t.rut }}</td>
+          <td>{{ t.cargo or '—' }}</td>
+          <td><span class="badge badge-blue">{{ t.turno or '—' }}</span></td>
+          <td>
+            {% set estado_map = {
+              'Activo en campamento': 'green',
+              'En descanso': 'blue',
+              'Permiso': 'yellow',
+              'Falla': 'red',
+              'Licencia Médica': 'yellow',
+              'Vacaciones': 'purple',
+              'Desvinculado': 'gray'
+            } %}
+            <span class="badge badge-{{ estado_map.get(t.estado, 'gray') }}">{{ t.estado }}</span>
+          </td>
+          <td>
+            {% if t.modulo %}
+              <span style="font-size:12px;">Mód. {{ t.modulo }} · P{{ t.piso }} · {{ t.pieza }}</span>
+            {% else %}
+              <span class="text-muted" style="font-size:11px;">Sin asignar</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if t.qr_revocado %}
+              <span class="badge badge-red badge-sm">Revocado</span>
+            {% else %}
+              <span class="badge badge-green badge-sm">Activo</span>
+            {% endif %}
+          </td>
+          <td>
+            <a href="{{ url_for('trabajador_detalle', id=t.id) }}" class="btn btn-secondary btn-sm">Ver</a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty-state">
+    <div class="empty-icon">👷</div>
+    <h3>No se encontraron trabajadores</h3>
+    <p>Ajusta los filtros o <a href="{{ url_for('trabajador_nuevo') }}">crea uno nuevo</a>.</p>
+  </div>
+  {% endif %}
+
+  {% if total_pages > 1 %}
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 4px 4px;flex-wrap:wrap;gap:10px;">
+    <div style="font-size:12px;color:var(--text-muted);">
+      Mostrando {{ (page-1)*20 + 1 }}–{{ [page*20, total]|min }} de <strong>{{ total }}</strong> trabajadores
+    </div>
+    <div style="display:flex;gap:6px;align-items:center;">
+      {% if page > 1 %}
+      <a href="{{ url_for('trabajadores_lista', page=page-1, q=busqueda, estado=estado_filtro, turno=turno_filtro) }}"
+         class="btn btn-secondary btn-sm">← Anterior</a>
+      {% endif %}
+
+      {% for p in range([1, page-2]|max, [total_pages+1, page+3]|min) %}
+        {% if p == page %}
+        <span style="padding:4px 10px;border-radius:6px;background:var(--accent);color:#fff;font-size:13px;font-weight:600;">{{ p }}</span>
+        {% else %}
+        <a href="{{ url_for('trabajadores_lista', page=p, q=busqueda, estado=estado_filtro, turno=turno_filtro) }}"
+           style="padding:4px 10px;border-radius:6px;background:rgba(255,255,255,0.06);color:var(--text-secondary);font-size:13px;text-decoration:none;">{{ p }}</a>
+        {% endif %}
+      {% endfor %}
+
+      {% if page < total_pages %}
+      <a href="{{ url_for('trabajadores_lista', page=page+1, q=busqueda, estado=estado_filtro, turno=turno_filtro) }}"
+         class="btn btn-secondary btn-sm">Siguiente →</a>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+<!-- MODAL CONFIRMACIÓN ASIGNACIÓN MASIVA -->
+<div class="modal-backdrop" id="modal-asignar-masivo">
+  <div class="modal" style="max-width:440px;">
+    <div class="modal-title">🎲 Asignar Habitaciones Masivo</div>
+    <div style="font-size:13px;color:var(--text-secondary);margin-bottom:16px;line-height:1.6;">
+      Esta acción asignará <strong>habitaciones disponibles aleatorias</strong> a todos los
+      trabajadores que aún <strong>no tienen pieza asignada</strong>.
+    </div>
+    <div style="background:var(--yellow-bg);border:1px solid rgba(245,158,11,0.2);border-radius:8px;
+                padding:10px 12px;font-size:12px;color:var(--text-secondary);margin-bottom:16px;">
+      ⚠️ Los trabajadores que ya tienen habitación <strong>no serán modificados</strong>.
+    </div>
+    <div class="modal-footer">
+      <button type="button" onclick="closeModal('modal-asignar-masivo')" class="btn btn-secondary">Cancelar</button>
+      <button type="button" onclick="document.getElementById('form-asignar-masivo').submit()" class="btn btn-primary">
+        ✅ Confirmar Asignación
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Form oculto — envío real al servidor -->
+<form id="form-asignar-masivo"
+      method="POST"
+      action="{{ url_for('asignar_habitaciones_masivo') }}"
+      style="display:none;"></form>
+
+{% endblock %}

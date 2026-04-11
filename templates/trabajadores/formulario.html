@@ -1,0 +1,127 @@
+{% extends "base.html" %}
+{% set is_edit = trabajador is not none %}
+{% block title %}{{ 'Editar' if is_edit else 'Nuevo' }} Trabajador{% endblock %}
+{% block page_title %}{{ '✏️ Editar' if is_edit else '➕ Nuevo' }} Trabajador{% endblock %}
+{% block page_subtitle %}{{ trabajador.nombre if is_edit else 'Completa el formulario' }}{% endblock %}
+
+{% block topbar_actions %}
+  {% if is_edit %}
+  <a href="{{ url_for('trabajador_detalle', id=trabajador.id) }}" class="btn btn-secondary">← Volver</a>
+  {% else %}
+  <a href="{{ url_for('trabajadores_lista') }}" class="btn btn-secondary">← Lista</a>
+  {% endif %}
+{% endblock %}
+
+{% block content %}
+<div style="max-width:700px;margin:0 auto;">
+  <form method="POST" action="{{ url_for('trabajador_editar', id=trabajador.id) if is_edit else url_for('trabajador_nuevo') }}">
+    <div class="card">
+      <div class="card-title">👷 Información Personal</div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Nombre Completo *</label>
+          <input type="text" name="nombre" class="form-control" required
+                 placeholder="Juan Pérez González"
+                 value="{{ trabajador.nombre if is_edit else '' }}"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">RUT *</label>
+          <input type="text" name="rut" class="form-control" required
+                 placeholder="12.345.678-9"
+                 value="{{ trabajador.rut if is_edit else '' }}"/>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Cargo</label>
+          <input type="text" name="cargo" class="form-control"
+                 placeholder="Operador, Supervisor, Mecánico..."
+                 value="{{ trabajador.cargo if is_edit else '' }}"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Email</label>
+          <input type="email" name="email" class="form-control"
+                 placeholder="trabajador@empresa.cl"
+                 value="{{ trabajador.email if is_edit else '' }}"/>
+        </div>
+      </div>
+    </div>
+
+    <div class="card mt-2">
+      <div class="card-title">🔄 Turno y Estado</div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Tipo de Turno *</label>
+          <select name="turno" id="sel-turno" class="form-control" required>
+            <option value="">Selecciona un turno</option>
+            {% for t in turnos %}
+            <option value="{{ t }}" {{ 'selected' if is_edit and trabajador.turno == t }}>{{ t }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Estado Actual</label>
+          <select name="estado" class="form-control">
+            {% for e in estados %}
+            <option value="{{ e }}" {{ 'selected' if is_edit and trabajador.estado == e else ('selected' if not is_edit and e == 'En descanso') }}>{{ e }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Fecha de Inicio del Ciclo Actual</label>
+        <input type="date" name="fecha_inicio_ciclo" id="inp-fecha-ciclo" class="form-control"
+               value="{{ trabajador.fecha_inicio_ciclo if is_edit else hoy_iso }}"/>
+        <div id="turno-hint" style="font-size:11px;color:var(--text-muted);margin-top:4px;">
+          El sistema calculará automáticamente las fechas de subida/bajada basado en esta fecha y el tipo de turno.
+        </div>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:12px;justify-content:flex-end;margin-top:20px;">
+      <a href="{{ url_for('trabajador_detalle', id=trabajador.id) if is_edit else url_for('trabajadores_lista') }}"
+         class="btn btn-secondary">Cancelar</a>
+      <button type="submit" class="btn btn-primary">
+        {{ '💾 Guardar Cambios' if is_edit else '✅ Crear Trabajador' }}
+      </button>
+    </div>
+  </form>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const TURNOS_INFO = {{ turnos_info | tojson }};
+
+const selTurno  = document.getElementById('sel-turno');
+const inpFecha  = document.getElementById('inp-fecha-ciclo');
+const turnoHint = document.getElementById('turno-hint');
+
+function actualizarHintTurno() {
+  const turno = selTurno.value;
+  const info  = TURNOS_INFO[turno] || {};
+
+  if (info.ref_inicio) {
+    // Si la fecha actual es la ref de OTRO turno calendarizado (o está vacía), reemplazar
+    const refsConocidas = Object.values(TURNOS_INFO)
+                                .map(v => v.ref_inicio)
+                                .filter(Boolean);
+    if (!inpFecha.value || refsConocidas.includes(inpFecha.value)) {
+      inpFecha.value = info.ref_inicio;
+    }
+    const contra = info.contraturno
+      ? ` · Contraturno: <strong style="color:#fbbf24;">${info.contraturno}</strong>` : '';
+    turnoHint.innerHTML =
+      `📅 Turno calendarizado — referencia: <strong>${info.ref_inicio}</strong>${contra}.<br>
+       <span style="color:#94a3b8;">Ajusta la fecha si el trabajador inició en un ciclo diferente.</span>`;
+    turnoHint.style.color = '#60a5fa';
+  } else {
+    turnoHint.innerHTML  = 'El sistema calculará automáticamente las fechas de subida/bajada basado en esta fecha y el tipo de turno.';
+    turnoHint.style.color = 'var(--text-muted)';
+  }
+}
+
+selTurno.addEventListener('change', actualizarHintTurno);
+actualizarHintTurno();
+</script>
+{% endblock %}

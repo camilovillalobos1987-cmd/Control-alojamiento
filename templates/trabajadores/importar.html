@@ -1,0 +1,194 @@
+{% extends "base.html" %}
+{% block title %}Importar Trabajadores{% endblock %}
+{% block page_title %}📥 Importación Masiva{% endblock %}
+{% block page_subtitle %}Carga trabajadores desde Excel/CSV y asigna habitaciones masivamente{% endblock %}
+
+{% block topbar_actions %}
+  <a href="{{ url_for('trabajadores_lista') }}" class="btn btn-secondary">← Volver a Trabajadores</a>
+{% endblock %}
+
+{% block content %}
+<div class="grid-1-2">
+
+  <!-- ── COLUMNA IZQUIERDA: IMPORTAR CSV ── -->
+  <div style="display:flex;flex-direction:column;gap:16px;">
+
+    <!-- PASO 1: DESCARGAR PLANTILLA -->
+    <div class="card">
+      <div class="card-title">📋 Paso 1 — Descargar Plantilla</div>
+      <p style="font-size:13px;color:var(--text-secondary);margin-bottom:12px;">
+        Descarga la plantilla CSV, ábrela en Excel o Google Sheets, completa los datos y guárdala como <strong>.csv</strong>.
+      </p>
+      <a href="{{ url_for('plantilla_csv') }}" class="btn btn-primary w-full">
+        ⬇️ Descargar Plantilla CSV
+      </a>
+      <div style="margin-top:14px;background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:8px;overflow:hidden;">
+        <div style="background:rgba(255,255,255,0.06);padding:8px 12px;font-size:10px;font-weight:700;letter-spacing:0.06em;color:var(--text-muted);">
+          COLUMNAS REQUERIDAS
+        </div>
+        <div style="padding:10px 12px;display:grid;gap:6px;">
+          {% set cols = [
+            ('nombre','✅ Obligatorio','Nombre completo del trabajador'),
+            ('rut','✅ Obligatorio','RUT con formato 12.345.678-9'),
+            ('cargo','Opcional','Ej: Operador, Mecánico'),
+            ('turno','Opcional','14x14 · 7x7 · 5x2 · 4x3 · 21x7'),
+            ('email','Opcional','Para notificaciones automáticas'),
+            ('estado','Opcional','En descanso (por defecto)'),
+            ('fecha_inicio_ciclo','Opcional','YYYY-MM-DD del inicio del ciclo'),
+          ] %}
+          {% for col, req, desc in cols %}
+          <div style="display:grid;grid-template-columns:130px 100px 1fr;gap:8px;align-items:center;font-size:12px;">
+            <code style="background:rgba(99,102,241,0.12);color:#a78bfa;padding:2px 6px;border-radius:4px;">{{ col }}</code>
+            <span style="color:{% if '✅' in req %}var(--green){% else %}var(--text-muted){% endif %};font-size:11px;">{{ req }}</span>
+            <span style="color:var(--text-muted);">{{ desc }}</span>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+      <div style="margin-top:10px;background:var(--yellow-bg);border:1px solid rgba(245,158,11,0.2);border-radius:8px;padding:10px 12px;font-size:12px;color:var(--text-secondary);">
+        <strong style="color:var(--yellow);">Turnos válidos:</strong>
+        {% for t in turnos %}<code style="background:rgba(99,102,241,0.1);color:#a78bfa;padding:1px 5px;border-radius:3px;margin-left:4px;">{{ t }}</code>{% endfor %}
+      </div>
+    </div>
+
+    <!-- PASO 2: SUBIR ARCHIVO -->
+    <div class="card">
+      <div class="card-title">📤 Paso 2 — Subir Archivo CSV</div>
+      <form method="POST" action="{{ url_for('trabajadores_importar') }}" enctype="multipart/form-data">
+        <div id="drop-zone"
+             style="border:2px dashed var(--border);border-radius:10px;padding:32px;text-align:center;cursor:pointer;transition:all 0.2s;"
+             ondragover="this.style.borderColor='var(--accent)';this.style.background='rgba(99,102,241,0.06)';event.preventDefault();"
+             ondragleave="this.style.borderColor='var(--border)';this.style.background='';"
+             ondrop="handleDrop(event)"
+             onclick="document.getElementById('inp-csv').click()">
+          <div style="font-size:36px;margin-bottom:8px;">📁</div>
+          <div style="font-size:14px;font-weight:600;color:var(--text-primary);">Arrastra tu CSV aquí</div>
+          <div style="font-size:12px;color:var(--text-muted);margin-top:4px;">o haz clic para seleccionar</div>
+          <div id="nombre-archivo" style="margin-top:10px;font-size:12px;color:var(--accent);"></div>
+        </div>
+        <input type="file" id="inp-csv" name="archivo" accept=".csv" style="display:none;"
+               onchange="mostrarNombre(this)"/>
+        <button type="submit" class="btn btn-primary w-full" style="margin-top:12px;">
+          🚀 Importar Trabajadores
+        </button>
+      </form>
+    </div>
+
+  </div>
+
+  <!-- ── COLUMNA DERECHA ── -->
+  <div style="display:flex;flex-direction:column;gap:16px;">
+
+    <!-- RESULTADO DE IMPORTACIÓN -->
+    {% if resultado %}
+    <div class="card">
+      <div class="card-title">📊 Resultado de Importación</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:16px;">
+        <div style="text-align:center;background:var(--green-bg);border:1px solid rgba(34,197,94,0.2);border-radius:10px;padding:16px;">
+          <div style="font-size:32px;font-weight:800;color:var(--green);">{{ resultado.creados }}</div>
+          <div style="font-size:11px;color:var(--text-muted);margin-top:4px;">Creados</div>
+        </div>
+        <div style="text-align:center;background:var(--yellow-bg);border:1px solid rgba(245,158,11,0.2);border-radius:10px;padding:16px;">
+          <div style="font-size:32px;font-weight:800;color:var(--yellow);">{{ resultado.omitidos }}</div>
+          <div style="font-size:11px;color:var(--text-muted);margin-top:4px;">RUT Duplicado</div>
+        </div>
+        <div style="text-align:center;background:var(--red-bg);border:1px solid rgba(239,68,68,0.2);border-radius:10px;padding:16px;">
+          <div style="font-size:32px;font-weight:800;color:var(--red);">{{ resultado.errores|length }}</div>
+          <div style="font-size:11px;color:var(--text-muted);margin-top:4px;">Errores</div>
+        </div>
+      </div>
+
+      {% if resultado.creados > 0 %}
+      <div style="background:var(--green-bg);border:1px solid rgba(34,197,94,0.2);border-radius:8px;padding:10px 14px;font-size:13px;color:var(--green);margin-bottom:10px;">
+        ✅ {{ resultado.creados }} trabajador(es) importado(s) con sus QR generados.
+      </div>
+      {% endif %}
+
+      {% if resultado.errores %}
+      <div style="background:var(--red-bg);border:1px solid rgba(239,68,68,0.2);border-radius:8px;padding:10px 14px;">
+        <div style="font-size:12px;font-weight:700;color:var(--red);margin-bottom:6px;">❌ Errores encontrados:</div>
+        {% for e in resultado.errores %}
+        <div style="font-size:11px;color:var(--text-secondary);padding:2px 0;border-bottom:1px solid rgba(255,255,255,0.04);">{{ e }}</div>
+        {% endfor %}
+      </div>
+      {% endif %}
+    </div>
+    {% endif %}
+
+    <!-- ASIGNACIÓN MASIVA DE HABITACIONES -->
+    <div class="card">
+      <div class="card-title">🏨 Asignación Masiva de Habitaciones</div>
+      <p style="font-size:13px;color:var(--text-secondary);margin-bottom:16px;">
+        Asigna automáticamente una habitación disponible aleatoria a todos los trabajadores que aún no tienen una.
+      </p>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;">
+        <div style="background:rgba(255,255,255,0.04);border-radius:8px;padding:14px;text-align:center;">
+          <div style="font-size:24px;font-weight:800;color:var(--yellow);">{{ sin_habitacion }}</div>
+          <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">Sin habitación</div>
+        </div>
+        <div style="background:rgba(255,255,255,0.04);border-radius:8px;padding:14px;text-align:center;">
+          <div style="font-size:24px;font-weight:800;color:var(--green);">160</div>
+          <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">Piezas totales</div>
+        </div>
+      </div>
+
+      {% if sin_habitacion > 0 %}
+      <form method="POST" action="{{ url_for('asignar_habitaciones_masivo') }}"
+            onsubmit="return confirm('¿Asignar habitaciones aleatorias a {{ sin_habitacion }} trabajadores? Esta acción reasignará las piezas automáticamente.')">
+        <button type="submit" class="btn btn-primary w-full">
+          🎲 Asignar Habitaciones Aleatorias ({{ sin_habitacion }} pendientes)
+        </button>
+      </form>
+      {% else %}
+      <div style="text-align:center;padding:16px;color:var(--green);font-size:13px;">
+        ✅ Todos los trabajadores tienen habitación asignada
+      </div>
+      {% endif %}
+
+      <div style="margin-top:12px;background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:8px;padding:12px;font-size:12px;color:var(--text-muted);">
+        <strong style="color:var(--text-secondary);">¿Cómo funciona?</strong><br/>
+        El sistema selecciona aleatoriamente una pieza con estado <em>Disponible</em>, la marca como <em>Ocupada</em> y regenera el QR del trabajador con la nueva información.
+      </div>
+    </div>
+
+    <!-- ACCIONES RÁPIDAS -->
+    <div class="card">
+      <div class="card-title">⚡ Acciones Rápidas</div>
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <a href="{{ url_for('trabajadores_lista') }}" class="btn btn-secondary w-full">
+          👷 Ver lista de trabajadores
+        </a>
+        <a href="{{ url_for('habitaciones_mapa') }}" class="btn btn-secondary w-full">
+          🏨 Ver mapa de módulos
+        </a>
+      </div>
+    </div>
+
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function mostrarNombre(input) {
+  const nombre = input.files[0]?.name || '';
+  document.getElementById('nombre-archivo').textContent = nombre ? `📄 ${nombre}` : '';
+}
+
+function handleDrop(e) {
+  e.preventDefault();
+  const zone = document.getElementById('drop-zone');
+  zone.style.borderColor = 'var(--border)';
+  zone.style.background = '';
+  const archivo = e.dataTransfer.files[0];
+  if (archivo) {
+    const inp = document.getElementById('inp-csv');
+    const dt = new DataTransfer();
+    dt.items.add(archivo);
+    inp.files = dt.files;
+    document.getElementById('nombre-archivo').textContent = `📄 ${archivo.name}`;
+  }
+}
+</script>
+{% endblock %}

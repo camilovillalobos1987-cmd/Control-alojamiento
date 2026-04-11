@@ -1,0 +1,169 @@
+{% extends "base.html" %}
+{% block title %}Novedades{% endblock %}
+{% block page_title %}📋 Panel de Novedades{% endblock %}
+{% block page_subtitle %}Registro de permisos, licencias, fallas y cambios de turno{% endblock %}
+
+{% block content %}
+<div class="grid-1-2">
+  <!-- FORMULARIO REGISTRO -->
+  <div class="card">
+    <div class="card-title">➕ Registrar Novedad</div>
+    <form method="POST" action="{{ url_for('trabajador_cambio_estado', id=0) }}" id="form-novedad">
+      <div class="form-group">
+        <label class="form-label">Trabajador *</label>
+        <select name="trabajador_id_select" class="form-control" required id="sel-trabajador">
+          <option value="">Selecciona un trabajador</option>
+          {% for t in trabajadores if t.estado != 'Desvinculado' %}
+          <option value="{{ t.id }}" data-estado="{{ t.estado }}">
+            {{ t.nombre }} ({{ t.rut }}) — {{ t.estado }}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Tipo de Novedad *</label>
+        <select name="estado" class="form-control" required id="sel-tipo">
+          <option value="Permiso">🟡 Permiso</option>
+          <option value="Falla">🔴 Falla</option>
+          <option value="Licencia Médica">🏥 Licencia Médica</option>
+          <option value="Vacaciones">🌴 Vacaciones</option>
+          <option value="Cambio de Turno">🔄 Cambio de Turno</option>
+          <option value="Desvinculado">⚫ Desvinculación</option>
+          <option value="Activo en campamento">🟢 Reincorporar</option>
+        </select>
+      </div>
+
+      <div id="grp-liberar-panel" style="display:none;"
+           style="background:var(--yellow-bg);border:1px solid rgba(245,158,11,0.2);border-radius:8px;padding:12px;margin-bottom:16px;">
+        <label class="form-label">
+          <input type="checkbox" name="liberar_pieza" value="1"/>
+          ¿Liberar la pieza temporalmente?
+        </label>
+        <div style="font-size:11px;color:var(--text-muted);margin-top:4px;">
+          Si se marca, la habitación quedará disponible para reasignación durante el período.
+        </div>
+      </div>
+
+      <div id="grp-desvincular" style="display:none;background:var(--red-bg);border:1px solid rgba(239,68,68,0.2);border-radius:8px;padding:12px;margin-bottom:16px;">
+        <div style="color:var(--red);font-weight:600;margin-bottom:4px;">⚠️ Acción Irreversible</div>
+        <div style="font-size:12px;color:var(--text-secondary);">Al desvincular, la habitación se liberará automáticamente y el QR quedará revocado.</div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Fecha Inicio</label>
+          <input type="date" name="fecha_inicio" class="form-control" value="{{ hoy_iso }}"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Fecha Fin</label>
+          <input type="date" name="fecha_fin" class="form-control"/>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Observación / Motivo</label>
+        <textarea name="observacion" class="form-control" rows="3"
+                  placeholder="Describe el motivo de la novedad..."></textarea>
+      </div>
+
+      <button type="submit" class="btn btn-primary w-full" id="btn-submit-novedad">
+        Registrar Novedad
+      </button>
+    </form>
+  </div>
+
+  <!-- HISTORIAL DE NOVEDADES -->
+  <div class="card">
+    <div class="card-title">📜 Historial Reciente</div>
+    {% if novedades %}
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr>
+            <th>Trabajador</th>
+            <th>Tipo</th>
+            <th>Período</th>
+            <th>Pieza</th>
+            <th>Registro</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for n in novedades %}
+          {% set tipo_map = {
+            'Permiso': 'yellow',
+            'Falla': 'red',
+            'Licencia Médica': 'yellow',
+            'Vacaciones': 'purple',
+            'Desvinculación': 'gray',
+            'Cambio de Turno': 'blue'
+          } %}
+          <tr>
+            <td>
+              <a href="{{ url_for('trabajador_detalle', id=n.trabajador_id) }}"
+                 style="font-weight:600;color:var(--text-primary);">{{ n.nombre }}</a>
+              <div style="font-size:11px;color:var(--text-muted);">{{ n.rut }}</div>
+            </td>
+            <td>
+              <span class="badge badge-{{ tipo_map.get(n.tipo, 'gray') }}">{{ n.tipo }}</span>
+            </td>
+            <td style="font-size:12px;">
+              {{ n.fecha_inicio | fecha_cl if n.fecha_inicio else '—' }}
+              {% if n.fecha_fin %} → {{ n.fecha_fin | fecha_cl }}{% endif %}
+            </td>
+            <td>
+              {% if n.pieza_liberada %}
+                <span class="badge badge-yellow">Liberada</span>
+              {% else %}
+                <span class="badge badge-gray">Retenida</span>
+              {% endif %}
+            </td>
+            <td style="font-size:11px;color:var(--text-muted);">
+              {{ n.created_at[:16] if n.created_at else '' }}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="empty-state" style="padding:32px;">
+      <div class="empty-icon">📋</div>
+      <h3>Sin novedades registradas</h3>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+const selTrab = document.getElementById('sel-trabajador');
+const selTipo = document.getElementById('sel-tipo');
+const grpLib  = document.getElementById('grp-liberar-panel');
+const grpDesv = document.getElementById('grp-desvincular');
+const form    = document.getElementById('form-novedad');
+const btn     = document.getElementById('btn-submit-novedad');
+
+selTipo.addEventListener('change', updateUI);
+updateUI();
+
+function updateUI() {
+  const tipo = selTipo.value;
+  const excepcionales = ['Permiso','Falla','Licencia Médica','Vacaciones'];
+  grpLib.style.display  = excepcionales.includes(tipo) ? 'block' : 'none';
+  grpDesv.style.display = (tipo === 'Desvinculado') ? 'block' : 'none';
+  btn.className = tipo === 'Desvinculado' ? 'btn btn-danger w-full' : 'btn btn-primary w-full';
+}
+
+// Redirigir form al trabajador correcto
+form.addEventListener('submit', function(e) {
+  e.preventDefault();
+  const id = selTrab.value;
+  if (!id) { alert('Selecciona un trabajador'); return; }
+  form.action = `/trabajadores/${id}/estado`;
+  form.submit();
+});
+</script>
+{% endblock %}

@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>Acceso al Sistema — {{ NOMBRE_EMPRESA }}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --accent:  #3b82f6;
+      --glow:    rgba(59,130,246,0.28);
+      --text:    #f1f5f9;
+      --muted:   #64748b;
+      --sub:     #94a3b8;
+      --border:  rgba(255,255,255,0.08);
+      --card-bg: rgba(10,15,30,0.92);
+    }
+
+    html, body {
+      height: 100%;
+      font-family: 'Inter', sans-serif;
+      background: #070d1a;
+      color: var(--text);
+    }
+
+    /* ══════════════════════════════════════════════
+       LAYOUT: imagen de fondo completa + card centrada
+    ══════════════════════════════════════════════ */
+    .page {
+      min-height: 100vh;
+      display: grid;
+      grid-template-columns: 1fr 480px;
+    }
+
+    @media (max-width: 860px) {
+      .page { grid-template-columns: 1fr; }
+      .left-panel { display: none; }
+    }
+
+    /* ══ Panel izquierdo ══ */
+    .left-panel {
+      position: relative;
+      overflow: hidden;
+    }
+
+    .left-panel img {
+      position: absolute;
+      inset: 0;
+      width: 100%; height: 100%;
+      object-fit: cover;
+      object-position: center 30%;
+    }
+
+    /* Gradiente sobre imagen: oscuro abajo + tinte azul sutil */
+    .left-panel::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background:
+        linear-gradient(to bottom,
+          rgba(7,13,26,0.35) 0%,
+          rgba(7,13,26,0.55) 50%,
+          rgba(7,13,26,0.85) 100%),
+        linear-gradient(135deg,
+          rgba(59,130,246,0.12) 0%,
+          transparent 60%);
+    }
+
+    .left-content {
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 48px 52px;
+    }
+
+    /* Logo arriba */
+    .left-brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .left-brand-icon {
+      width: 42px; height: 42px;
+      background: linear-gradient(135deg, rgba(59,130,246,.85), rgba(99,102,241,.85));
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px;
+      backdrop-filter: blur(6px);
+      border: 1px solid rgba(255,255,255,.15);
+    }
+    .left-brand-name {
+      font-size: 15px;
+      font-weight: 700;
+      color: #fff;
+      letter-spacing: .01em;
+    }
+    .left-brand-sub {
+      font-size: 10px;
+      color: rgba(255,255,255,.55);
+      text-transform: uppercase;
+      letter-spacing: .12em;
+      margin-top: 1px;
+    }
+
+    /* Texto central */
+    .left-hero {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding: 40px 0;
+    }
+    .left-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(59,130,246,.18);
+      border: 1px solid rgba(59,130,246,.35);
+      border-radius: 100px;
+      padding: 5px 14px;
+      font-size: 11px;
+      font-weight: 600;
+      color: #93c5fd;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      width: fit-content;
+      margin-bottom: 24px;
+    }
+    .left-title {
+      font-size: 38px;
+      font-weight: 900;
+      line-height: 1.15;
+      color: #fff;
+      letter-spacing: -.01em;
+      margin-bottom: 18px;
+    }
+    .left-title em {
+      font-style: normal;
+      background: linear-gradient(135deg, #60a5fa, #818cf8);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .left-desc {
+      font-size: 14.5px;
+      color: rgba(255,255,255,.58);
+      line-height: 1.7;
+      max-width: 380px;
+    }
+
+    /* Stats abajo */
+    .left-stats {
+      display: flex;
+      gap: 0;
+      border-top: 1px solid rgba(255,255,255,.1);
+      padding-top: 28px;
+    }
+    .left-stat {
+      flex: 1;
+      padding-right: 24px;
+    }
+    .left-stat + .left-stat {
+      border-left: 1px solid rgba(255,255,255,.1);
+      padding-left: 24px;
+      padding-right: 0;
+    }
+    .left-stat-num {
+      font-size: 24px;
+      font-weight: 800;
+      color: #60a5fa;
+      line-height: 1;
+    }
+    .left-stat-label {
+      font-size: 11px;
+      color: rgba(255,255,255,.45);
+      margin-top: 4px;
+      text-transform: uppercase;
+      letter-spacing: .07em;
+    }
+
+    /* ══ Panel derecho: formulario ══ */
+    .right-panel {
+      background: #0a0f1e;
+      border-left: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 40px 48px;
+      position: relative;
+    }
+
+    /* Línea de acento arriba */
+    .right-panel::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 50%;
+      transform: translateX(-50%);
+      width: 120px; height: 2px;
+      background: linear-gradient(90deg, transparent, var(--accent), transparent);
+    }
+
+    .form-box {
+      width: 100%;
+      max-width: 360px;
+    }
+
+    /* Cabecera del form */
+    .form-header {
+      text-align: center;
+      margin-bottom: 36px;
+    }
+    .form-header-icon {
+      width: 56px; height: 56px;
+      background: linear-gradient(135deg, #1d4ed8, #6366f1);
+      border-radius: 16px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      margin-bottom: 20px;
+      box-shadow: 0 8px 28px var(--glow);
+    }
+    .form-header h1 {
+      font-size: 24px;
+      font-weight: 800;
+      color: var(--text);
+      letter-spacing: -.01em;
+      margin-bottom: 8px;
+    }
+    .form-header p {
+      font-size: 13.5px;
+      color: var(--sub);
+      line-height: 1.55;
+    }
+
+    /* Alertas flash */
+    .alert {
+      border-radius: 10px;
+      padding: 11px 14px;
+      font-size: 13px;
+      font-weight: 500;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: flex-start;
+      gap: 9px;
+    }
+    .alert-danger  { background: rgba(239,68,68,.1);  border: 1px solid rgba(239,68,68,.28);  color: #fca5a5; }
+    .alert-success { background: rgba(34,197,94,.09); border: 1px solid rgba(34,197,94,.28);  color: #86efac; }
+    .alert-warning { background: rgba(245,158,11,.09);border: 1px solid rgba(245,158,11,.28); color: #fcd34d; }
+
+    /* Campos */
+    .field { margin-bottom: 18px; }
+    .field label {
+      display: block;
+      font-size: 11.5px;
+      font-weight: 600;
+      color: var(--sub);
+      letter-spacing: .07em;
+      text-transform: uppercase;
+      margin-bottom: 7px;
+    }
+    .input-wrap { position: relative; }
+    .input-icon {
+      position: absolute;
+      left: 13px; top: 50%;
+      transform: translateY(-50%);
+      font-size: 15px;
+      opacity: .45;
+      pointer-events: none;
+      line-height: 1;
+    }
+    .field input {
+      width: 100%;
+      background: rgba(255,255,255,.04);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px 14px 12px 40px;
+      font-size: 14px;
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
+      outline: none;
+      transition: border-color .2s, box-shadow .2s, background .2s;
+    }
+    .field input::placeholder { color: var(--muted); }
+    .field input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--glow);
+      background: rgba(59,130,246,.04);
+    }
+
+    /* Botón */
+    .btn-submit {
+      width: 100%;
+      padding: 13px;
+      background: linear-gradient(135deg, #1d4ed8 0%, #3b82f6 100%);
+      border: none;
+      border-radius: 10px;
+      color: #fff;
+      font-size: 14.5px;
+      font-weight: 700;
+      font-family: 'Inter', sans-serif;
+      cursor: pointer;
+      letter-spacing: .02em;
+      box-shadow: 0 4px 18px var(--glow);
+      transition: transform .15s, box-shadow .2s, opacity .15s;
+      margin-top: 6px;
+    }
+    .btn-submit:hover  { transform: translateY(-2px); box-shadow: 0 8px 26px var(--glow); }
+    .btn-submit:active { transform: translateY(0); }
+
+    /* Footer */
+    .form-footer {
+      margin-top: 28px;
+      padding-top: 20px;
+      border-top: 1px solid var(--border);
+      text-align: center;
+      font-size: 11.5px;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    /* Dev hint */
+    .dev-hint {
+      margin-top: 16px;
+      background: rgba(59,130,246,.06);
+      border: 1px dashed rgba(59,130,246,.2);
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-size: 11.5px;
+      color: var(--muted);
+      line-height: 1.8;
+      text-align: left;
+    }
+    .dev-hint strong { color: var(--sub); }
+  </style>
+</head>
+<body>
+<div class="page">
+
+  <!-- ══ Panel izquierdo ══ -->
+  <div class="left-panel">
+    <img src="{{ url_for('static', filename='img/portada.webp') }}" alt="Campamento"/>
+    <div class="left-content">
+
+      <!-- Marca arriba -->
+      <div class="left-brand">
+        <div class="left-brand-icon">🏕️</div>
+        <div>
+          <div class="left-brand-name">{{ NOMBRE_EMPRESA }}</div>
+          <div class="left-brand-sub">Sistema de Campamento</div>
+        </div>
+      </div>
+
+      <!-- Texto principal centrado -->
+      <div class="left-hero">
+        <div class="left-tag">⚙️ &nbsp;Plataforma Operacional</div>
+        <div class="left-title">
+          Gestión integral de<br>
+          <em>campamento y</em><br>
+          <em>habitabilidad</em>
+        </div>
+        <p class="left-desc">
+          Control centralizado de trabajadores, módulos de alojamiento,
+          accesos QR y reportes en tiempo real. Diseñado para operaciones
+          mineras y de construcción de alta exigencia.
+        </p>
+      </div>
+
+      <!-- Stats abajo -->
+      <div class="left-stats">
+        <div class="left-stat">
+          <div class="left-stat-num">100%</div>
+          <div class="left-stat-label">Trazabilidad</div>
+        </div>
+        <div class="left-stat">
+          <div class="left-stat-num">24/7</div>
+          <div class="left-stat-label">Disponibilidad</div>
+        </div>
+        <div class="left-stat">
+          <div class="left-stat-num">QR</div>
+          <div class="left-stat-label">Acceso seguro</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ══ Panel derecho ══ -->
+  <div class="right-panel">
+    <div class="form-box">
+
+      <!-- Cabecera -->
+      <div class="form-header">
+        <div class="form-header-icon">🔐</div>
+        <h1>Bienvenido de vuelta</h1>
+        <p>Ingresa tus credenciales para acceder<br>al sistema de gestión operacional.</p>
+      </div>
+
+      <!-- Flash messages -->
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% for cat, msg in messages %}
+          <div class="alert alert-{{ cat }}">
+            <span>{{ '✅' if cat == 'success' else ('❌' if cat == 'danger' else '⚠️') }}</span>
+            <span>{{ msg }}</span>
+          </div>
+        {% endfor %}
+      {% endwith %}
+
+      <!-- Formulario -->
+      <form method="POST" action="{{ url_for('login') }}">
+        <div class="field">
+          <label>Usuario</label>
+          <div class="input-wrap">
+            <span class="input-icon">👤</span>
+            <input type="text" name="username" placeholder="Nombre de usuario"
+                   value="{{ request.form.get('username', '') }}"
+                   required autofocus autocomplete="username"/>
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Contraseña</label>
+          <div class="input-wrap">
+            <span class="input-icon">🔒</span>
+            <input type="password" name="password" placeholder="••••••••"
+                   required autocomplete="current-password"/>
+          </div>
+        </div>
+
+        <button type="submit" class="btn-submit">Iniciar Sesión &nbsp;→</button>
+      </form>
+
+      <!-- Footer -->
+      <div class="form-footer">
+        <strong style="color:var(--sub);">{{ NOMBRE_EMPRESA }}</strong><br>
+        Acceso restringido · Solo personal autorizado · v1.0
+      </div>
+
+      {% if config.DEBUG %}
+      <div class="dev-hint">
+        <strong>Modo desarrollo:</strong><br>
+        Admin → <strong>admin</strong> / <strong>admin123</strong><br>
+        Visor &nbsp;→ <strong>visor</strong> / <strong>visor123</strong>
+      </div>
+      {% endif %}
+
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

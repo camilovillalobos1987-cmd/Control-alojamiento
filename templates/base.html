@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>{% block title %}Sistema de Campamento{% endblock %} — {{ NOMBRE_EMPRESA }}</title>
+  <meta name="description" content="Sistema Integral de Gestión de Campamento y Habitabilidad"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}"/>
+  {% block head %}{% endblock %}
+</head>
+<body>
+
+<!-- ══ SIDEBAR ══ -->
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-icon">🏕️</div>
+    <div class="logo-text">
+      <h2>{{ NOMBRE_EMPRESA }}</h2>
+      <span>Sistema de Campamento</span>
+    </div>
+  </div>
+
+  <nav class="sidebar-nav">
+    <div class="nav-section">
+      <div class="nav-section-title">Principal</div>
+      <a href="{{ url_for('dashboard') }}" class="nav-item">
+        <span class="nav-icon">📊</span> Dashboard
+      </a>
+      <a href="{{ url_for('porteria') }}" class="nav-item">
+        <span class="nav-icon">📷</span> Portería / QR
+      </a>
+    </div>
+
+    <div class="nav-section">
+      <div class="nav-section-title">Gestión</div>
+      <a href="{{ url_for('trabajadores_lista') }}" class="nav-item">
+        <span class="nav-icon">👷</span> Trabajadores
+      </a>
+      <a href="{{ url_for('trabajador_nuevo') }}" class="nav-item">
+        <span class="nav-icon">➕</span> Nuevo Trabajador
+      </a>
+      <a href="{{ url_for('habitaciones_mapa') }}" class="nav-item">
+        <span class="nav-icon">🏨</span> Mapa de Módulos
+      </a>
+    </div>
+
+    <div class="nav-section">
+      <div class="nav-section-title">Operativo</div>
+      <a href="{{ url_for('novedades_panel') }}" class="nav-item">
+        <span class="nav-icon">📋</span> Novedades
+      </a>
+      <a href="{{ url_for('reporte_movimientos') }}" class="nav-item">
+        <span class="nav-icon">📝</span> Movimientos
+      </a>
+      <a href="{{ url_for('reportes_asistencia') }}" class="nav-item">
+        <span class="nav-icon">📈</span> Asistencia Mensual
+      </a>
+    </div>
+
+    {% if session.get('rol') == 'admin' %}
+    <div class="nav-section">
+      <div class="nav-section-title" style="color:#ef4444;">Desarrollo</div>
+      <a href="{{ url_for('admin_limpiar_bd') }}" class="nav-item"
+         style="color:#ef4444;opacity:0.7;">
+        <span class="nav-icon">🗑️</span> Limpiar BD
+      </a>
+    </div>
+    {% endif %}
+  </nav>
+
+  <div class="sidebar-footer">
+    {% if session.get('username') %}
+    <div class="sidebar-user">
+      <div class="sidebar-user-avatar">{{ session.user_name[0]|upper }}</div>
+      <div class="sidebar-user-info">
+        <div class="sidebar-user-name">{{ session.user_name }}</div>
+        <div class="sidebar-user-rol">{{ '🛡️ Administrador' if session.rol == 'admin' else '👁️ Visor' }}</div>
+      </div>
+      <a href="{{ url_for('logout') }}" class="sidebar-logout" title="Cerrar sesión">⏻</a>
+    </div>
+    {% endif %}
+    <div style="margin-top:8px;">📅 {{ hoy }}</div>
+    <div style="margin-top:4px;">v1.0 · Control Campamento</div>
+  </div>
+</aside>
+
+<!-- ══ FLASH MESSAGES ══ -->
+<div class="flash-container">
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for cat, msg in messages %}
+      <div class="flash flash-{{ cat }}">
+        <span>{{ '✅' if cat == 'success' else ('❌' if cat == 'danger' else 'ℹ️') }}</span>
+        <span>{{ msg }}</span>
+      </div>
+    {% endfor %}
+  {% endwith %}
+</div>
+
+<!-- ══ SIDEBAR OVERLAY (mobile) ══ -->
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+<!-- ══ MAIN ══ -->
+<div class="main-content">
+  {% block topbar %}
+  <header class="topbar">
+    <div class="topbar-left">
+      <button class="menu-btn" id="menuBtn" aria-label="Menú">
+        <span></span><span></span><span></span>
+      </button>
+      <div class="topbar-title">
+        <h1>{% block page_title %}Sistema{% endblock %}</h1>
+        <p>{% block page_subtitle %}{% endblock %}</p>
+      </div>
+    </div>
+    <div class="topbar-actions">
+      {% block topbar_actions %}{% endblock %}
+    </div>
+  </header>
+  {% endblock %}
+
+  <main class="page-content">
+    {% block content %}{% endblock %}
+  </main>
+</div>
+
+<!-- ══ MOBILE BOTTOM NAV ══ -->
+<nav class="mobile-nav" id="mobileNav">
+  <a href="{{ url_for('dashboard') }}" class="mobile-nav-item {% if request.endpoint == 'dashboard' %}active{% endif %}">
+    <span class="mobile-nav-icon">📊</span>
+    <span class="mobile-nav-label">Dashboard</span>
+  </a>
+  {% if session.get('rol') == 'admin' %}
+  <a href="{{ url_for('porteria') }}" class="mobile-nav-item {% if request.endpoint == 'porteria' %}active{% endif %}">
+    <span class="mobile-nav-icon">📷</span>
+    <span class="mobile-nav-label">Portería</span>
+  </a>
+  <a href="{{ url_for('trabajadores_lista') }}" class="mobile-nav-item {% if request.endpoint in ['trabajadores_lista','trabajador_detalle'] %}active{% endif %}">
+    <span class="mobile-nav-icon">👷</span>
+    <span class="mobile-nav-label">Trabajadores</span>
+  </a>
+  {% endif %}
+  <a href="{{ url_for('reportes_asistencia') }}" class="mobile-nav-item {% if request.endpoint == 'reportes_asistencia' %}active{% endif %}">
+    <span class="mobile-nav-icon">📈</span>
+    <span class="mobile-nav-label">Reportes</span>
+  </a>
+  <button class="mobile-nav-item mobile-nav-more" id="mobileMenuBtn">
+    <span class="mobile-nav-icon">☰</span>
+    <span class="mobile-nav-label">Menú</span>
+  </button>
+</nav>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+<script>
+(function(){
+  var sidebar  = document.getElementById('sidebar');
+  var overlay  = document.getElementById('sidebarOverlay');
+  var menuBtn  = document.getElementById('menuBtn');
+  var mobileBtn= document.getElementById('mobileMenuBtn');
+
+  function openSidebar(){
+    sidebar.classList.add('open');
+    overlay.classList.add('show');
+    document.body.style.overflow = 'hidden';
+  }
+  function closeSidebar(){
+    sidebar.classList.remove('open');
+    overlay.classList.remove('show');
+    document.body.style.overflow = '';
+  }
+
+  if(menuBtn)   menuBtn.addEventListener('click', function(){ sidebar.classList.contains('open') ? closeSidebar() : openSidebar(); });
+  if(mobileBtn) mobileBtn.addEventListener('click', function(){ sidebar.classList.contains('open') ? closeSidebar() : openSidebar(); });
+  if(overlay)   overlay.addEventListener('click', closeSidebar);
+
+  // Marcar nav-item activo en sidebar
+  var path = window.location.pathname;
+  document.querySelectorAll('.nav-item').forEach(function(a){
+    if(a.getAttribute('href') === path) a.classList.add('active');
+  });
+})();
+</script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

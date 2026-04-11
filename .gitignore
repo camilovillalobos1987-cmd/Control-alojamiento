@@ -1,0 +1,20 @@
+# Entornos virtuales
+venv/
+env/
+.env
+
+# Base de datos
+*.db
+campamento.db
+campamento.db-journal
+
+# Variables y binarios
+__pycache__/
+*.exe
+ngrok.exe
+ngrok.log
+
+# Archivos de la nube
+.vscode/
+.claude/
+*.xlsx
