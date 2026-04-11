@@ -39,6 +39,12 @@ from auth import (
 app = Flask(__name__)
 app.secret_key = SECRET_KEY
 
+# ── INICIALIZACIÓN AUTOMÁTICA DE BASE DE DATOS (Para Producción / Gunicorn) ──
+from init_data import init as db_init
+from database import migrar_db
+db_init()
+migrar_db()
+
 
 # ═══════════════════════════════════════════════════════
 # CONTEXT PROCESSOR
