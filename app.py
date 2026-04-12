@@ -758,7 +758,7 @@ def api_ocupantes_habitacion(hab_id):
 
     # Enriquecer cada ocupante con su estado de turno calculado hoy
     for t in ocupantes:
-        if t.get("turno") and t.get("turno") in TURNOS:
+        if t.get("turno"):
             info = calcular_estado_turno(t["turno"], t.get("fecha_inicio_ciclo"))
             t["estado_turno_hoy"] = info["estado_calculado"]
             t["fecha_bajada"]     = info.get("fecha_bajada")
