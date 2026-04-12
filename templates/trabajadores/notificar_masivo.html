@@ -1,0 +1,178 @@
+{% extends "base.html" %}
+
+{% block title %}Notificar Subidas Masivas{% endblock %}
+{% block page_title %}Notificar Subidas a Faena{% endblock %}
+{% block page_subtitle %}Informa a los trabajadores sobre sus habitaciones antes de subir{% endblock %}
+
+{% block topbar_actions %}
+  <a href="{{ url_for('trabajadores_lista') }}" class="btn btn-secondary">Volver a Trabajadores</a>
+{% endblock %}
+
+{% block content %}
+<div class="card mb-4" style="max-width: 800px;">
+    <h3 class="mb-2">📋 Instrucciones de Notificación</h3>
+    <p style="color:var(--text-secondary); font-size:14px; margin-bottom:12px;">
+      Selecciona de la lista inferior a los trabajadores que están próximos a iniciar su ciclo en faena. 
+      Al presionar <strong>Enviar Notificaciones</strong>, el sistema generará y despachará un correo electrónico 
+      a cada trabajador seleccionado indicándole su <strong>Módulo y Habitación</strong> actual, previniendo confusiones en portería.
+    </p>
+    <div style="background:rgba(234,179,8,0.1); border:1px solid rgba(234,179,8,0.2); padding:12px; border-radius:6px; font-size:13px; color:#facc15;">
+        ⚠️ <strong>Atención:</strong> Los correos solo se enviarán a los perfiles que tengan una dirección de Email configurada y una habitación asignada válida en el sistema.
+    </div>
+</div>
+
+<form method="POST" action="{{ url_for('notificaciones_subida') }}" id="form-notificaciones">
+    <div class="card">
+        <div class="flex-center justify-between mb-3">
+            <h3 style="margin: 0;">Selección Masiva de Trabajadores</h3>
+            <button type="submit" class="btn btn-success flex-center gap-2" id="submit-btn">
+                <span>📩</span> Enviar Detalles a Selección
+            </button>
+        </div>
+        
+        <div class="search-bar mb-3 p-3 rounded" style="background: rgba(0,0,0,0.2);">
+            <div style="flex:1;">
+                <label style="font-size:12px; font-weight:bold; color:var(--text-muted); display:block; margin-bottom:4px;">Filtrar por Turno</label>
+                <select id="filtro-turno" class="form-control-sm w-full" onchange="filtrarTabla()">
+                    <option value="">Mostrar todos los turnos</option>
+                    {% for turno in turnos_keys %}
+                    <option value="{{ turno }}">{{ turno }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div style="flex:1;">
+                <label style="font-size:12px; font-weight:bold; color:var(--text-muted); display:block; margin-bottom:4px;">Filtrar por Estado</label>
+                <select id="filtro-estado" class="form-control-sm w-full" onchange="filtrarTabla()">
+                    <option value="">Mostrar todos los estados</option>
+                    <option value="En descanso">En descanso (Próximos a subir)</option>
+                    <option value="Activo en campamento">Activo en campamento</option>
+                    <option value="Licencia Médica">Licencia Médica</option>
+                </select>
+            </div>
+            <div style="flex:2;">
+                <label style="font-size:12px; font-weight:bold; color:var(--text-muted); display:block; margin-bottom:4px;">Buscar</label>
+                <input type="text" id="filtro-texto" class="search-input w-full" placeholder="Buscar por Nombre..." oninput="filtrarTabla()">
+            </div>
+        </div>
+
+        <div class="table-container">
+            <table class="table" id="tabla-notificaciones">
+                <thead>
+                    <tr>
+                        <th style="width:40px; text-align:center;">
+                            <input type="checkbox" id="check-all" onchange="toggleAll()">
+                        </th>
+                        <th>Nombre</th>
+                        <th>RUT</th>
+                        <th>Turno</th>
+                        <th>Estado Actual</th>
+                        <th>Próxima Subida (Proyectada)</th>
+                        <th>Habitación</th>
+                        <th>Contacto</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for t in trabajadores %}
+                    <tr class="fila-trabajador" data-turno="{{ t.turno }}" data-estado="{{ t.estado_calculado }}" data-nombre="{{ t.nombre|lower }}">
+                        <td style="text-align:center;">
+                            <input type="checkbox" name="trabajador_ids" value="{{ t.id }}" class="check-trabajador">
+                        </td>
+                        <td style="font-weight:600;">{{ t.nombre }}</td>
+                        <td style="font-size:13px; color:var(--text-muted);">{{ t.rut }}</td>
+                        <td><span class="badge">{{ t.turno }}</span></td>
+                        <td>
+                            {% if t.estado_calculado == 'Activo en campamento' %}
+                                <span class="badge" style="background:#16a34a;color:#fff;">En Faena</span>
+                            {% elif t.estado_calculado == 'En descanso' %}
+                                <span class="badge" style="background:#475569;color:#fff;">Descanso</span>
+                            {% else %}
+                                <span class="badge" style="background:#f59e0b;color:#111;">{{ t.estado_calculado }}</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if t.fecha_subida %}
+                                <strong style="color:var(--accent);">{{ t.fecha_subida | fecha_cl }}</strong>
+                            {% else %}
+                                <span style="color:var(--text-muted);">No proyectada</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if t.modulo %}
+                                <strong>{{ t.modulo }}-{{ t.pieza }}</strong>
+                            {% else %}
+                                <span style="color:var(--red);">Sin habitación</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if t.email %}
+                                <span title="Email configurado">✅</span>
+                            {% else %}
+                                <span title="Falta Email" style="opacity:0.3;">❌</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</form>
+
+<script>
+function toggleAll() {
+    const isChecked = document.getElementById("check-all").checked;
+    const checkboxes = document.querySelectorAll(".check-trabajador");
+    checkboxes.forEach(cb => {
+        // Solo checkear las filas que están visibles
+        const fila = cb.closest("tr");
+        if(fila.style.display !== "none") {
+            cb.checked = isChecked;
+        }
+    });
+}
+
+function filtrarTabla() {
+    const fTurno = document.getElementById("filtro-turno").value;
+    const fEstado = document.getElementById("filtro-estado").value;
+    const fTexto = document.getElementById("filtro-texto").value.toLowerCase();
+    
+    const filas = document.querySelectorAll(".fila-trabajador");
+    
+    filas.forEach(fila => {
+        const tTurno = fila.getAttribute("data-turno") || "";
+        const tEstado = fila.getAttribute("data-estado") || "";
+        const tNombre = fila.getAttribute("data-nombre") || "";
+        
+        let match = true;
+        
+        if(fTurno && tTurno !== fTurno) match = false;
+        if(fEstado && tEstado !== fEstado) match = false;
+        if(fTexto && !tNombre.includes(fTexto)) match = false;
+        
+        fila.style.display = match ? "" : "none";
+        
+        // Si la fila se esconde, quitar el check para evitar falsos envíos
+        if(!match){
+            const check = fila.querySelector(".check-trabajador");
+            if(check) check.checked = false;
+        }
+    });
+    
+    // Desmarcar check general al filtrar
+    document.getElementById("check-all").checked = false;
+}
+
+// Confirmación segura
+document.getElementById('form-notificaciones').addEventListener('submit', function(e){
+    const selected = document.querySelectorAll('.check-trabajador:checked');
+    if(selected.length === 0){
+        e.preventDefault();
+        alert('Debes seleccionar al menos un trabajador para notificar.');
+        return;
+    }
+    const bt = document.getElementById("submit-btn");
+    bt.innerHTML = '<span>⏳</span> Enviando correos, espere...';
+    bt.disabled = true;
+});
+</script>
+{% endblock %}

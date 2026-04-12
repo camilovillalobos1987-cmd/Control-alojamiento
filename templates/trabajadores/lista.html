@@ -4,6 +4,7 @@
 {% block page_subtitle %}{{ total }} resultado(s) encontrado(s){% endblock %}
 
 {% block topbar_actions %}
+  <a href="{{ url_for('notificaciones_subida') }}" class="btn btn-success">📩 Notificar Subidas</a>
   <a href="{{ url_for('trabajadores_importar') }}" class="btn btn-secondary">📥 Importar CSV</a>
   <button type="button" class="btn btn-secondary" onclick="openModal('modal-asignar-masivo')">🎲 Asignar Habitaciones Masivo</button>
   <a href="{{ url_for('trabajador_nuevo') }}" class="btn btn-primary">➕ Nuevo</a>

@@ -212,6 +212,82 @@ def trabajadores_lista():
                  "Falla", "Licencia Médica", "Vacaciones", "Desvinculado"],
     )
 
+@app.route("/trabajadores/notificaciones-subida", methods=["GET", "POST"])
+@admin_required
+def notificaciones_subida():
+    from turnos import get_proxima_subida, calcular_estado_turno
+    import time
+    
+    if request.method == "POST":
+        ids_seleccionados = request.form.getlist("trabajador_ids")
+        if not ids_seleccionados:
+            flash("No seleccionaste a ningún trabajador.", "danger")
+            return redirect(url_for('notificaciones_subida'))
+            
+        exitos = 0
+        fallos = 0
+        sin_email_o_hab = 0
+        
+        for tid_str in ids_seleccionados:
+            t = db.get_trabajador(int(tid_str))
+            if not t:
+                continue
+            if not t.get("email") or not t.get("modulo"):
+                sin_email_o_hab += 1
+                continue
+            
+            if notificar_llegada(t):
+                exitos += 1
+            else:
+                fallos += 1
+                
+            time.sleep(0.1)
+            
+        msg = f"Correos enviados: {exitos} exitosos."
+        if fallos > 0: msg += f" {fallos} fallaron."
+        if sin_email_o_hab > 0: msg += f" {sin_email_o_hab} omitidos (sin email o pieza)."
+        
+        if exitos > 0: flash(msg, "success")
+        else: flash(msg, "warning")
+        
+        return redirect(url_for('notificaciones_subida'))
+
+    todos = db.get_todos_trabajadores()
+    trabajadores_preparados = []
+    turnos_keys = set()
+    
+    for t in todos:
+        if t["estado"] == "Desvinculado":
+            continue
+            
+        if t.get("turno"):
+            turnos_keys.add(t["turno"])
+            info = calcular_estado_turno(t["turno"], t.get("fecha_inicio_ciclo"))
+            t["estado_calculado"] = info["estado_calculado"]
+            
+            prox = get_proxima_subida(t["turno"], t.get("fecha_inicio_ciclo"))
+            if prox:
+                t["fecha_subida"] = prox.isoformat()
+            else:
+                t["fecha_subida"] = None
+        else:
+            t["estado_calculado"] = t["estado"]
+            t["fecha_subida"] = None
+            
+        trabajadores_preparados.append(t)
+        
+    def sort_key(x):
+        if x.get("fecha_subida"):
+            return x["fecha_subida"]
+        return "2099-12-31"
+        
+    trabajadores_preparados.sort(key=sort_key)
+
+    return render_template("trabajadores/notificar_masivo.html", 
+                           trabajadores=trabajadores_preparados,
+                           turnos_keys=sorted(list(turnos_keys)))
+
+
 def limpiar_y_validar_rut(rut_raw):
     # Primero limpiar puntos y espacios
     r = rut_raw.replace(".", "").replace("-", "").replace(" ", "").upper()
