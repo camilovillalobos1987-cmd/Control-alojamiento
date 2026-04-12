@@ -16,8 +16,8 @@
       --text:    #f1f5f9;
       --muted:   #94a3b8;
       --sub:     #cbd5e1;
-      --border:  rgba(255,255,255,0.1);
-      --glass-bg: rgba(10, 15, 30, 0.85); /* Glass base */
+      --border:  rgba(255,255,255,0.12);
+      --glass-bg: rgba(10, 15, 30, 0.7);
     }
 
     html, body {
@@ -29,95 +29,27 @@
     }
 
     /* ══════════════════════════════════════════════
-       LAYOUT: Glassmorphism centric
+       LAYOUT: Full Background Centered
     ══════════════════════════════════════════════ */
     .page {
       height: 100vh;
-      display: grid;
-      grid-template-columns: 1fr 500px;
-      background: #030712;
-    }
-
-    @media (max-width: 992px) {
-      .page { grid-template-columns: 1fr; }
-      .left-panel { display: none; }
-    }
-
-    /* ══ Panel izquierdo ══ */
-    .left-panel {
-      position: relative;
-      overflow: hidden;
-    }
-
-    .left-panel img {
-      position: absolute;
-      inset: 0;
-      width: 100%; height: 100%;
-      object-fit: cover;
-      object-position: center 30%;
-    }
-
-    .left-panel::after {
-      content: '';
-      position: absolute;
-      inset: 0;
-      background:
-        linear-gradient(to right,
-          rgba(3,7,18,0.1) 0%,
-          rgba(3,7,18,0.8) 100%),
-        linear-gradient(to bottom,
-          transparent 0%,
-          rgba(3,7,18,0.4) 100%);
-    }
-
-    .left-content {
-      position: absolute;
-      inset: 0;
-      z-index: 1;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-      padding: 60px 80px;
-    }
-
-    .left-brand { display: flex; align-items: center; gap: 14px; }
-    .left-brand-icon {
-      width: 48px; height: 48px;
-      background: var(--accent-grad);
-      border-radius: 12px;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 20px;
-      box-shadow: 0 4px 15px rgba(59,130,246,0.4);
-    }
-    .left-brand-name { font-size: 18px; font-weight: 800; color: #fff; }
-
-    .left-hero { flex: 1; display: flex; flex-direction: column; justify-content: center; }
-    .left-title {
-      font-size: 44px; font-weight: 900; line-height: 1.1; color: #fff;
-      margin-bottom: 24px; letter-spacing: -0.02em;
-    }
-    .left-title span { color: var(--accent); }
-    .left-desc { font-size: 16px; color: var(--muted); line-height: 1.6; max-width: 420px; }
-
-    /* ══ Panel derecho ══ */
-    .right-panel {
-      background-image: url("{{ url_for('static', filename='img/portada.webp') }}");
-      background-size: cover;
-      background-position: center;
+      width: 100vw;
       display: flex;
       align-items: center;
       justify-content: center;
-      padding: 20px;
       position: relative;
+      background-image: url("{{ url_for('static', filename='img/portada.webp') }}");
+      background-size: cover;
+      background-position: center;
     }
 
-    /* Overlay oscuro para que el glass se vea mejor */
-    .right-panel::before {
+    /* Overlay general para profundidad */
+    .page::before {
       content: '';
       position: absolute;
       inset: 0;
-      background: rgba(3, 7, 18, 0.7); /* Oscurecer imagen de fondo */
-      backdrop-filter: blur(4px);
+      background: radial-gradient(circle at center, rgba(3,7,18,0.4) 0%, rgba(3,7,18,0.85) 100%);
+      backdrop-filter: blur(2px);
     }
 
     /* Animación de error */
@@ -130,122 +62,131 @@
 
     .form-box {
       width: 100%;
-      max-width: 420px;
+      max-width: 440px;
       background: var(--glass-bg);
-      backdrop-filter: blur(28px) saturate(180%);
-      -webkit-backdrop-filter: blur(28px) saturate(180%);
+      backdrop-filter: blur(32px) saturate(180%);
+      -webkit-backdrop-filter: blur(32px) saturate(180%);
       border: 1px solid var(--border);
-      border-radius: 24px;
-      padding: 48px 40px;
-      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+      border-radius: 28px;
+      padding: 48px;
+      box-shadow: 0 40px 100px -20px rgba(0, 0, 0, 0.6);
       position: relative;
-      z-index: 2;
+      z-index: 10;
     }
 
-    /* Marca superior en móvil */
-    .mobile-logo { display: none; margin-bottom: 30px; text-align: center; }
-    @media (max-width: 992px) {
-        .mobile-logo { display: block; }
-        .right-panel::before { background: rgba(3, 7, 18, 0.85); } /* Más oscuro en móvil */
+    .form-header { text-align: center; margin-bottom: 32px; }
+    
+    /* Contenedor alineado para Candado + Badge */
+    .security-meta {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        margin-bottom: 20px;
     }
 
-    .form-header { text-align: center; margin-bottom: 36px; }
+    .brand-svg-icon {
+        width: 28px; height: 28px;
+        filter: drop-shadow(0 0 10px var(--accent));
+    }
+
     .form-header-badge {
       display: inline-flex;
-      background: rgba(59,130,246,0.1);
-      border: 1px solid rgba(59,130,246,0.2);
-      padding: 6px 12px;
+      background: rgba(59,130,246,0.15);
+      border: 1px solid rgba(59,130,246,0.3);
+      padding: 6px 14px;
       border-radius: 99px;
       font-size: 11px;
       font-weight: 700;
       text-transform: uppercase;
-      letter-spacing: 0.1em;
+      letter-spacing: 0.12em;
       color: #93c5fd;
-      margin-bottom: 16px;
     }
-    .form-header h1 { font-size: 28px; font-weight: 800; margin-bottom: 8px; }
-    .form-header p { color: var(--muted); font-size: 14px; }
 
-    /* Estilo del ícono SVG para reemplazar emoji */
-    .brand-svg-icon {
-        width: 64px; height: 64px;
-        margin-bottom: 24px;
-        filter: drop-shadow(0 0 15px var(--accent));
-    }
+    .form-header h1 { font-size: 26px; font-weight: 800; margin-bottom: 6px; }
+    .form-header p { color: var(--muted); font-size: 13.5px; }
 
     .alert {
-      background: rgba(239, 68, 68, 0.15);
+      background: rgba(239, 68, 68, 0.2);
       border: 1px solid rgba(239, 68, 68, 0.3);
       color: #fca5a5;
       padding: 12px 16px;
       border-radius: 12px;
       font-size: 13px;
-      margin-bottom: 24px;
+      margin-bottom: 20px;
       display: flex;
       align-items: center;
       gap: 10px;
     }
 
-    .field { margin-bottom: 20px; }
+    .field { margin-bottom: 18px; }
     .field label {
-      display: block; font-size: 12px; font-weight: 600; color: var(--muted);
-      margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.05em;
+      display: block; font-size: 11.5px; font-weight: 600; color: var(--muted);
+      margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.06em;
     }
     .input-wrap { position: relative; }
     .input-icon {
       position: absolute; left: 16px; top: 50%; transform: translateY(-50%);
-      color: var(--muted); font-size: 16px;
+      color: var(--muted); font-size: 15px; opacity: 0.7;
     }
     .field input {
       width: 100%;
-      background: rgba(255,255,255,0.03);
+      background: rgba(255,255,255,0.04);
       border: 1px solid var(--border);
-      border-radius: 14px;
-      padding: 14px 16px 14px 48px;
+      border-radius: 12px;
+      padding: 13px 16px 13px 44px;
       color: #fff;
-      font-size: 15px;
+      font-size: 14.5px;
       outline: none;
       transition: all 0.2s;
     }
     .field input:focus {
-      background: rgba(255,255,255,0.06);
+      background: rgba(255,255,255,0.08);
       border-color: var(--accent);
       box-shadow: 0 0 0 4px var(--glow);
     }
     
-    /* Error field highlight */
-    .field.error input { border-color: #ef4444; }
-
-    /* Eye toggle */
     .pw-toggle {
         position: absolute; right: 14px; top: 50%; transform: translateY(-50%);
         background: none; border: none; color: var(--muted);
         cursor: pointer; padding: 4px; display: flex; align-items: center;
-        transition: color 0.2s;
     }
-    .pw-toggle:hover { color: var(--text); }
 
     .btn-submit {
       width: 100%;
-      padding: 16px;
+      padding: 15px;
       background: var(--accent-grad);
-      border: 1px solid rgba(255,255,255,0.1);
-      border-radius: 14px;
-      color: #fff; font-size: 16px; font-weight: 700;
+      border: none;
+      border-radius: 12px;
+      color: #fff; font-size: 15px; font-weight: 700;
       cursor: pointer; transition: all 0.2s;
-      box-shadow: 0 10px 20px -5px rgba(59,130,246,0.3);
+      box-shadow: 0 8px 20px -5px rgba(59,130,246,0.4);
       margin-top: 10px;
     }
-    .btn-submit:hover { transform: translateY(-2px); box-shadow: 0 15px 30px -5px rgba(59,130,246,0.5); }
-    .btn-submit:active { transform: translateY(0); }
+    .btn-submit:hover { transform: translateY(-2px); box-shadow: 0 12px 25px -5px rgba(59,130,246,0.6); }
 
     .form-footer {
-      margin-top: 32px; text-align: center; font-size: 12px; color: var(--muted);
-      border-top: 1px solid var(--border); padding-top: 24px; line-height: 1.6;
+      margin-top: 28px; text-align: center; font-size: 11.5px; color: var(--muted);
+      border-top: 1px solid var(--border); padding-top: 20px;
     }
 
+    /* Stats integrados sutilmente */
+    .stats-revert {
+        position: absolute;
+        bottom: 40px;
+        left: 40px;
+        display: flex;
+        gap: 40px;
+        z-index: 5;
+    }
+    @media (max-width: 768px) { .stats-revert { display: none; } }
+
+    .stat-item-rev { display: flex; flex-direction: column; }
+    .stat-item-rev span:first-child { font-size: 18px; font-weight: 800; color: #fff; }
+    .stat-item-rev span:last-child { font-size: 10px; color: var(--muted); text-transform: uppercase; }
+
     .dev-hint {
-        margin-top: 20px; padding: 12px; border-radius: 12px;
+        margin-top: 16px; padding: 10px; border-radius: 10px;
         background: rgba(59,130,246,0.05); border: 1px dashed rgba(59,130,246,0.2);
         font-size: 11px; color: var(--sub);
     }
@@ -254,138 +195,97 @@
 <body>
 <div class="page">
 
-  <!-- ══ Panel izquierdo ══ -->
-  <div class="left-panel">
-    <img src="{{ url_for('static', filename='img/portada.webp') }}" alt="Campamento"/>
-    <div class="left-content">
-
-      <!-- Marca arriba -->
-      <div class="left-brand">
-        <div class="left-brand-icon">🏕️</div>
-        <div>
-          <div class="left-brand-name">{{ NOMBRE_EMPRESA }}</div>
-          <div class="left-brand-sub">Sistema de Campamento</div>
-        </div>
-      </div>
-
-      <!-- Texto principal centrado -->
-      <div class="left-hero">
-        <div class="left-tag">⚙️ &nbsp;Plataforma Operacional</div>
-        <div class="left-title">
-          Gestión integral de<br>
-          <em>campamento y</em><br>
-          <em>habitabilidad</em>
-        </div>
-        <p class="left-desc">
-          Control centralizado de trabajadores, módulos de alojamiento,
-          accesos QR y reportes en tiempo real. Diseñado para operaciones
-          mineras y de construcción de alta exigencia.
-        </p>
-      </div>
-
-      <!-- Stats abajo -->
-      <div class="left-stats">
-        <div class="left-stat">
-          <div class="left-stat-num">100%</div>
-          <div class="left-stat-label">Trazabilidad</div>
-        </div>
-        <div class="left-stat">
-          <div class="left-stat-num">24/7</div>
-          <div class="left-stat-label">Disponibilidad</div>
-        </div>
-        <div class="left-stat">
-          <div class="left-stat-num">QR</div>
-          <div class="left-stat-label">Acceso seguro</div>
-        </div>
-      </div>
-
+  <!-- Stats originales restaurados del diseño anterior -->
+  <div class="stats-revert">
+    <div class="stat-item-rev">
+        <span>100%</span>
+        <span>Trazabilidad</span>
+    </div>
+    <div class="stat-item-rev">
+        <span>24/7</span>
+        <span>Disponibilidad</span>
+    </div>
+    <div class="stat-item-rev">
+        <span>QR</span>
+        <span>Acceso Seguro</span>
     </div>
   </div>
 
-  <!-- ══ Panel derecho ══ -->
-  <div class="right-panel">
-
-    <div class="form-box {% if get_flashed_messages(category_filter=['danger']) %}shake{% endif %}">
+  <div class="form-box {% if get_flashed_messages(category_filter=['danger']) %}shake{% endif %}">
+    
+    <!-- Cabecera -->
+    <div class="form-header">
       
-      <!-- Logo visible solo en móvil -->
-      <div class="mobile-logo">
-          <div class="left-brand" style="justify-content: center;">
-            <div class="left-brand-icon">🏕️</div>
-            <div class="left-brand-name">{{ NOMBRE_EMPRESA }}</div>
-          </div>
+      <div class="security-meta">
+          <svg class="brand-svg-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M12 2C9.243 2 7 4.243 7 7V10H6C4.897 10 4 10.897 4 12V20C4 21.103 4.897 22 6 22H18C19.103 22 20 21.103 20 20V12C20 10.897 19.103 10 18 10H17V7C17 4.243 14.757 2 12 2ZM9 7C9 5.346 10.346 4 12 4C13.654 4 15 5.346 15 7V10H9V7ZM18 20H6V12H18V20ZM12 14C11.171 14 10.5 14.671 10.5 15.5C10.5 16.035 10.781 16.502 11.2 16.765V18.5C11.2 18.776 11.424 19 11.7 19H12.3C12.576 19 12.8 18.776 12.8 18.5V16.765C13.219 16.502 13.5 16.035 13.5 15.5C13.5 14.671 12.829 14 12 14Z" fill="url(#grad1)"/>
+              <defs>
+                  <linearGradient id="grad1" x1="4" y1="2" x2="20" y2="22" gradientUnits="userSpaceOnUse">
+                      <stop stop-color="#3b82f6"/>
+                      <stop offset="1" stop-color="#1d4ed8"/>
+                  </linearGradient>
+              </defs>
+          </svg>
+          <div class="form-header-badge">Acceso Seguro</div>
       </div>
 
-      <!-- Cabecera -->
-      <div class="form-header">
-        <svg class="brand-svg-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M12 2C9.243 2 7 4.243 7 7V10H6C4.897 10 4 10.897 4 12V20C4 21.103 4.897 22 6 22H18C19.103 22 20 21.103 20 20V12C20 10.897 19.103 10 18 10H17V7C17 4.243 14.757 2 12 2ZM9 7C9 5.346 10.346 4 12 4C13.654 4 15 5.346 15 7V10H9V7ZM18 20H6V12H18V20ZM12 14C11.171 14 10.5 14.671 10.5 15.5C10.5 16.035 10.781 16.502 11.2 16.765V18.5C11.2 18.776 11.424 19 11.7 19H12.3C12.576 19 12.8 18.776 12.8 18.5V16.765C13.219 16.502 13.5 16.035 13.5 15.5C13.5 14.671 12.829 14 12 14Z" fill="url(#grad1)"/>
-            <defs>
-                <linearGradient id="grad1" x1="4" y1="2" x2="20" y2="22" gradientUnits="userSpaceOnUse">
-                    <stop stop-color="#3b82f6"/>
-                    <stop offset="1" stop-color="#1d4ed8"/>
-                </linearGradient>
-            </defs>
-        </svg>
-        <div class="form-header-badge">Acceso Seguro</div>
-        <h1>Bienvenido</h1>
-        <p>Inicia sesión para gestionar el campamento</p>
-      </div>
-
-      <!-- Flash messages -->
-      {% with messages = get_flashed_messages(with_categories=true) %}
-        {% for cat, msg in messages %}
-          <div class="alert alert-{{ cat }}">
-            <span style="font-size:18px;">{{ '✅' if cat == 'success' else ('⚠️') }}</span>
-            <span>{{ msg }}</span>
-          </div>
-        {% endfor %}
-      {% endwith %}
-
-      <!-- Formulario -->
-      <form method="POST" action="{{ url_for('login') }}">
-        <div class="field {% if get_flashed_messages(category_filter=['danger']) %}error{% endif %}">
-          <label>Usuario</label>
-          <div class="input-wrap">
-            <span class="input-icon">👤</span>
-            <input type="text" name="username" placeholder="Tu usuario"
-                   value="{{ request.form.get('username', '') }}"
-                   required autofocus autocomplete="username"/>
-          </div>
-        </div>
-
-        <div class="field {% if get_flashed_messages(category_filter=['danger']) %}error{% endif %}">
-          <label>Contraseña</label>
-          <div class="input-wrap">
-            <span class="input-icon">🔒</span>
-            <input type="password" id="password" name="password" placeholder="Tu contraseña"
-                   required autocomplete="current-password"/>
-            <button type="button" class="pw-toggle" onclick="togglePassword()">
-                <svg id="eye-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                    <circle cx="12" cy="12" r="3"></circle>
-                </svg>
-            </button>
-          </div>
-        </div>
-
-        <button type="submit" class="btn-submit">Entrar al Sistema &nbsp;→</button>
-      </form>
-
-      <!-- Footer -->
-      <div class="form-footer">
-        <strong style="color:#fff;">{{ NOMBRE_EMPRESA }}</strong><br>
-        Plataforma de Control de Alojamiento y Habitabilidad<br>
-        <span style="opacity:0.6;">Acceso restringido a personal autorizado</span>
-      </div>
-
-      {% if config.DEBUG %}
-      <div class="dev-hint">
-        <strong>Modo desarrollo:</strong><br>
-        Admin: admin / admin123 | Visor: visor / visor123
-      </div>
-      {% endif %}
-
+      <h1>Bienvenido</h1>
+      <p>Ingresa tus credenciales para acceder</p>
     </div>
+
+    <!-- Flash messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% for cat, msg in messages %}
+        <div class="alert alert-{{ cat }}">
+          <span style="font-size:18px;">{{ '✅' if cat == 'success' else ('⚠️') }}</span>
+          <span>{{ msg }}</span>
+        </div>
+      {% endfor %}
+    {% endwith %}
+
+    <!-- Formulario -->
+    <form method="POST" action="{{ url_for('login') }}">
+      <div class="field">
+        <label>Usuario</label>
+        <div class="input-wrap">
+          <span class="input-icon">👤</span>
+          <input type="text" name="username" placeholder="Tu usuario"
+                 value="{{ request.form.get('username', '') }}"
+                 required autofocus autocomplete="username"/>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Contraseña</label>
+        <div class="input-wrap">
+          <span class="input-icon">🔒</span>
+          <input type="password" id="password" name="password" placeholder="Tu contraseña"
+                 required autocomplete="current-password"/>
+          <button type="button" class="pw-toggle" onclick="togglePassword()">
+              <svg id="eye-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                  <circle cx="12" cy="12" r="3"></circle>
+              </svg>
+          </button>
+        </div>
+      </div>
+
+      <button type="submit" class="btn-submit">Entrar al Sistema &nbsp;→</button>
+    </form>
+
+    <!-- Footer -->
+    <div class="form-footer">
+      <strong style="color:#fff;">{{ NOMBRE_EMPRESA }}</strong><br>
+      Sistema de Gestión de Campamento<br>
+      <span style="opacity:0.6;">Acceso restringido a personal autorizado</span>
+    </div>
+
+    {% if config.DEBUG %}
+    <div class="dev-hint">
+      <strong>Debug:</strong> admin / admin123
+    </div>
+    {% endif %}
+
   </div>
 
 </div>
