@@ -572,13 +572,25 @@ tbody tr:last-child td { border-bottom: none; }
   outline: none;
 }
 
+/* Fix browser autofill background issues */
+input:-webkit-autofill,
+input:-webkit-autofill:hover, 
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active {
+    -webkit-box-shadow: 0 0 0 30px #111827 inset !important;
+    -webkit-text-fill-color: #f1f5f9 !important;
+}
+
 .form-control:focus {
   border-color: var(--accent);
   background: rgba(59,130,246,0.05);
   box-shadow: 0 0 0 3px var(--accent-glow);
 }
 
-.form-control option { background: var(--bg-card); }
+.form-control option { 
+  background-color: #111827; 
+  color: #f1f5f9; 
+}
 
 .form-row {
   display: grid;
@@ -692,19 +704,36 @@ tbody tr:last-child td { border-bottom: none; }
 
 .search-input:focus { border-color: var(--accent); }
 
+select.form-control,
 select.form-control-sm {
-  background: rgba(255,255,255,0.05);
+  background: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   padding: 9px 12px;
-  color: var(--text-secondary);
+  color: var(--text-primary);
   font-size: 13px;
   font-family: 'Inter', sans-serif;
   outline: none;
   cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2394a3b8'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  background-size: 16px;
+  padding-right: 36px;
 }
 
-select.form-control-sm:focus { border-color: var(--accent); color: var(--text-primary); }
+select.form-control:focus,
+select.form-control-sm:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-glow);
+}
+
+option {
+  background-color: #111827; /* Fallback color matching --bg-card */
+  color: #f1f5f9; /* Fallback color matching --text-primary */
+}
 
 /* ═══════════════════ FEED DE ACTIVIDAD ═══════════════════ */
 .activity-feed { display: flex; flex-direction: column; gap: 2px; }
