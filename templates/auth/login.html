@@ -17,7 +17,7 @@
       --muted:   #94a3b8;
       --sub:     #cbd5e1;
       --border:  rgba(255,255,255,0.12);
-      --glass-bg: rgba(10, 15, 30, 0.7);
+      --glass-bg: rgba(10, 15, 30, 0.75);
     }
 
     html, body {
@@ -29,30 +29,111 @@
     }
 
     /* ══════════════════════════════════════════════
-       LAYOUT: Full Background Centered
+       LAYOUT: Page & Background
     ══════════════════════════════════════════════ */
     .page {
       height: 100vh;
       width: 100vw;
       display: flex;
       align-items: center;
-      justify-content: center;
+      justify-content: space-between;
+      padding: 0 8%;
       position: relative;
       background-image: url("{{ url_for('static', filename='img/portada.webp') }}");
       background-size: cover;
       background-position: center;
     }
 
-    /* Overlay general para profundidad */
+    /* Overlay general para profundidad y legibilidad */
     .page::before {
       content: '';
       position: absolute;
       inset: 0;
-      background: radial-gradient(circle at center, rgba(3,7,18,0.4) 0%, rgba(3,7,18,0.85) 100%);
-      backdrop-filter: blur(2px);
+      background: linear-gradient(to right, rgba(3,7,18,0.85) 0%, rgba(3,7,18,0.4) 50%, rgba(3,7,18,0.7) 100%);
+      backdrop-filter: blur(1px);
     }
 
-    /* Animación de error */
+    @media (max-width: 1100px) {
+        .page { justify-content: center; padding: 20px; }
+        .hero-section { display: none; } /* Ocultar en tablets/móvil para priorizar login */
+    }
+
+    /* ══ Bloque Hero (Izquierda) ══ */
+    .hero-section {
+      position: relative;
+      z-index: 5;
+      max-width: 580px;
+      color: #fff;
+    }
+
+    .hero-brand {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 48px;
+    }
+    .hero-brand-icon {
+      width: 52px; height: 52px;
+      background: var(--accent-grad);
+      border-radius: 14px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 24px;
+      box-shadow: 0 10px 25px rgba(59,130,246,0.4);
+    }
+    .hero-brand-name { font-size: 20px; font-weight: 800; letter-spacing: -0.01em; }
+    .hero-brand-sub { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.1em; }
+
+    .hero-tag {
+      display: inline-flex;
+      background: rgba(59,130,246,0.15);
+      border: 1px solid rgba(59,130,246,0.3);
+      padding: 6px 16px;
+      border-radius: 100px;
+      font-size: 12px;
+      font-weight: 700;
+      color: #93c5fd;
+      margin-bottom: 24px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .hero-title {
+      font-size: 48px;
+      font-weight: 900;
+      line-height: 1.1;
+      margin-bottom: 24px;
+      letter-spacing: -0.02em;
+    }
+    .hero-title em { font-style: normal; color: var(--accent); }
+    
+    .hero-description {
+      font-size: 16px;
+      line-height: 1.6;
+      color: var(--sub);
+      max-width: 480px;
+      margin-bottom: 48px;
+    }
+
+    .hero-stats { display: flex; gap: 40px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 32px; }
+    .hero-stat-item { display: flex; flex-direction: column; }
+    .hero-stat-val { font-size: 24px; font-weight: 800; color: #fff; }
+    .hero-stat-lab { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
+
+    /* ══ Tarjeta Login (Derecha) ══ */
+    .form-box {
+      width: 100%;
+      max-width: 420px;
+      background: var(--glass-bg);
+      backdrop-filter: blur(32px) saturate(180%);
+      -webkit-backdrop-filter: blur(32px) saturate(180%);
+      border: 1px solid var(--border);
+      border-radius: 28px;
+      padding: 48px 40px;
+      box-shadow: 0 40px 100px -20px rgba(0, 0, 0, 0.6);
+      position: relative;
+      z-index: 10;
+    }
+
     @keyframes shake {
       0%, 100% { transform: translateX(0); }
       20%, 60% { transform: translateX(-8px); }
@@ -60,46 +141,20 @@
     }
     .shake { animation: shake 0.4s ease; }
 
-    .form-box {
-      width: 100%;
-      max-width: 440px;
-      background: var(--glass-bg);
-      backdrop-filter: blur(32px) saturate(180%);
-      -webkit-backdrop-filter: blur(32px) saturate(180%);
-      border: 1px solid var(--border);
-      border-radius: 28px;
-      padding: 48px;
-      box-shadow: 0 40px 100px -20px rgba(0, 0, 0, 0.6);
-      position: relative;
-      z-index: 10;
-    }
-
     .form-header { text-align: center; margin-bottom: 32px; }
-    
-    /* Contenedor alineado para Candado + Badge */
     .security-meta {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 10px;
-        margin-bottom: 20px;
+        display: flex; align-items: center; justify-content: center;
+        gap: 12px; margin-bottom: 20px;
     }
-
-    .brand-svg-icon {
-        width: 28px; height: 28px;
-        filter: drop-shadow(0 0 10px var(--accent));
-    }
-
+    .brand-svg-icon { width: 30px; height: 30px; filter: drop-shadow(0 0 10px var(--accent)); }
     .form-header-badge {
       display: inline-flex;
-      background: rgba(59,130,246,0.15);
-      border: 1px solid rgba(59,130,246,0.3);
+      background: rgba(59,130,246,0.1);
+      border: 1px solid rgba(59,130,246,0.2);
       padding: 6px 14px;
       border-radius: 99px;
-      font-size: 11px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.12em;
+      font-size: 11px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.1em;
       color: #93c5fd;
     }
 
@@ -107,42 +162,29 @@
     .form-header p { color: var(--muted); font-size: 13.5px; }
 
     .alert {
-      background: rgba(239, 68, 68, 0.2);
-      border: 1px solid rgba(239, 68, 68, 0.3);
-      color: #fca5a5;
-      padding: 12px 16px;
-      border-radius: 12px;
-      font-size: 13px;
-      margin-bottom: 20px;
-      display: flex;
-      align-items: center;
-      gap: 10px;
+      background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.3);
+      color: #fca5a5; padding: 12px 16px; border-radius: 12px;
+      font-size: 13px; margin-bottom: 20px; display: flex; align-items: center; gap: 10px;
     }
 
-    .field { margin-bottom: 18px; }
+    .field { margin-bottom: 20px; }
     .field label {
-      display: block; font-size: 11.5px; font-weight: 600; color: var(--muted);
-      margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.06em;
+      display: block; font-size: 12px; font-weight: 600; color: var(--muted);
+      margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.05em;
     }
     .input-wrap { position: relative; }
     .input-icon {
       position: absolute; left: 16px; top: 50%; transform: translateY(-50%);
-      color: var(--muted); font-size: 15px; opacity: 0.7;
+      color: var(--muted); font-size: 16px;
     }
     .field input {
-      width: 100%;
-      background: rgba(255,255,255,0.04);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 13px 16px 13px 44px;
-      color: #fff;
-      font-size: 14.5px;
-      outline: none;
+      width: 100%; background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border); border-radius: 14px;
+      padding: 14px 16px 14px 48px; color: #fff; font-size: 15px; outline: none;
       transition: all 0.2s;
     }
     .field input:focus {
-      background: rgba(255,255,255,0.08);
-      border-color: var(--accent);
+      background: rgba(255,255,255,0.06); border-color: var(--accent);
       box-shadow: 0 0 0 4px var(--glow);
     }
     
@@ -153,40 +195,21 @@
     }
 
     .btn-submit {
-      width: 100%;
-      padding: 15px;
-      background: var(--accent-grad);
-      border: none;
-      border-radius: 12px;
-      color: #fff; font-size: 15px; font-weight: 700;
+      width: 100%; padding: 16px;
+      background: var(--accent-grad); border: none; border-radius: 14px;
+      color: #fff; font-size: 16px; font-weight: 700;
       cursor: pointer; transition: all 0.2s;
-      box-shadow: 0 8px 20px -5px rgba(59,130,246,0.4);
-      margin-top: 10px;
+      box-shadow: 0 10px 20px -5px rgba(59,130,246,0.3);
     }
-    .btn-submit:hover { transform: translateY(-2px); box-shadow: 0 12px 25px -5px rgba(59,130,246,0.6); }
+    .btn-submit:hover { transform: translateY(-2px); box-shadow: 0 15px 30px -5px rgba(59,130,246,0.5); }
 
     .form-footer {
-      margin-top: 28px; text-align: center; font-size: 11.5px; color: var(--muted);
-      border-top: 1px solid var(--border); padding-top: 20px;
+      margin-top: 32px; text-align: center; font-size: 12px; color: var(--muted);
+      border-top: 1px solid var(--border); padding-top: 24px;
     }
-
-    /* Stats integrados sutilmente */
-    .stats-revert {
-        position: absolute;
-        bottom: 40px;
-        left: 40px;
-        display: flex;
-        gap: 40px;
-        z-index: 5;
-    }
-    @media (max-width: 768px) { .stats-revert { display: none; } }
-
-    .stat-item-rev { display: flex; flex-direction: column; }
-    .stat-item-rev span:first-child { font-size: 18px; font-weight: 800; color: #fff; }
-    .stat-item-rev span:last-child { font-size: 10px; color: var(--muted); text-transform: uppercase; }
 
     .dev-hint {
-        margin-top: 16px; padding: 10px; border-radius: 10px;
+        margin-top: 16px; padding: 12px; border-radius: 12px;
         background: rgba(59,130,246,0.05); border: 1px dashed rgba(59,130,246,0.2);
         font-size: 11px; color: var(--sub);
     }
@@ -195,27 +218,50 @@
 <body>
 <div class="page">
 
-  <!-- Stats originales restaurados del diseño anterior -->
-  <div class="stats-revert">
-    <div class="stat-item-rev">
-        <span>100%</span>
-        <span>Trazabilidad</span>
-    </div>
-    <div class="stat-item-rev">
-        <span>24/7</span>
-        <span>Disponibilidad</span>
-    </div>
-    <div class="stat-item-rev">
-        <span>QR</span>
-        <span>Acceso Seguro</span>
-    </div>
+  <!-- ══ Bloque Hero (Izquierda) ══ -->
+  <div class="hero-section">
+      <div class="hero-brand">
+          <div class="hero-brand-icon">🏕️</div>
+          <div class="hero-brand-info">
+              <div class="hero-brand-name">{{ NOMBRE_EMPRESA }}</div>
+              <div class="hero-brand-sub">SISTEMA DE CAMPAMENTO</div>
+          </div>
+      </div>
+
+      <div class="hero-tag">⚙️ PLATAFORMA OPERACIONAL</div>
+      
+      <h1 class="hero-title">
+          Gestión integral de<br>
+          <em>campamento y</em><br>
+          <em>habitabilidad</em>
+      </h1>
+
+      <p class="hero-description">
+          Control centralizado de trabajadores, módulos de alojamiento, accesos QR 
+          y reportes en tiempo real. Diseñado para operaciones mineras y de 
+          construcción de alta exigencia.
+      </p>
+
+      <div class="hero-stats">
+          <div class="hero-stat-item">
+              <span class="hero-stat-val">100%</span>
+              <span class="hero-stat-lab">Trazabilidad</span>
+          </div>
+          <div class="hero-stat-item">
+              <span class="hero-stat-val">24/7</span>
+              <span class="hero-stat-lab">Disponibilidad</span>
+          </div>
+          <div class="hero-stat-item">
+              <span class="hero-stat-val">QR</span>
+              <span class="hero-stat-lab">Acceso Seguro</span>
+          </div>
+      </div>
   </div>
 
+  <!-- ══ Tarjeta Login (Derecha) ══ -->
   <div class="form-box {% if get_flashed_messages(category_filter=['danger']) %}shake{% endif %}">
     
-    <!-- Cabecera -->
     <div class="form-header">
-      
       <div class="security-meta">
           <svg class="brand-svg-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path d="M12 2C9.243 2 7 4.243 7 7V10H6C4.897 10 4 10.897 4 12V20C4 21.103 4.897 22 6 22H18C19.103 22 20 21.103 20 20V12C20 10.897 19.103 10 18 10H17V7C17 4.243 14.757 2 12 2ZM9 7C9 5.346 10.346 4 12 4C13.654 4 15 5.346 15 7V10H9V7ZM18 20H6V12H18V20ZM12 14C11.171 14 10.5 14.671 10.5 15.5C10.5 16.035 10.781 16.502 11.2 16.765V18.5C11.2 18.776 11.424 19 11.7 19H12.3C12.576 19 12.8 18.776 12.8 18.5V16.765C13.219 16.502 13.5 16.035 13.5 15.5C13.5 14.671 12.829 14 12 14Z" fill="url(#grad1)"/>
@@ -228,7 +274,6 @@
           </svg>
           <div class="form-header-badge">Acceso Seguro</div>
       </div>
-
       <h1>Bienvenido</h1>
       <p>Ingresa tus credenciales para acceder</p>
     </div>
@@ -243,7 +288,6 @@
       {% endfor %}
     {% endwith %}
 
-    <!-- Formulario -->
     <form method="POST" action="{{ url_for('login') }}">
       <div class="field">
         <label>Usuario</label>
@@ -273,10 +317,9 @@
       <button type="submit" class="btn-submit">Entrar al Sistema &nbsp;→</button>
     </form>
 
-    <!-- Footer -->
     <div class="form-footer">
       <strong style="color:#fff;">{{ NOMBRE_EMPRESA }}</strong><br>
-      Sistema de Gestión de Campamento<br>
+      Plataforma de Habitabilidad Operacional<br>
       <span style="opacity:0.6;">Acceso restringido a personal autorizado</span>
     </div>
 
