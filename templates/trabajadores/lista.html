@@ -12,11 +12,11 @@
 {% block content %}
 
 <!-- BANNER NOTIFICAR SUBIDAS -->
-<div style="margin-bottom: 24px;">
-    <a href="{{ url_for('notificaciones_subida') }}" style="display:flex; align-items:center; justify-content:center; gap:16px; background:#16a34a; padding:20px; border-radius:12px; color:#fff; text-decoration:none; font-size:18px; font-weight:800; box-shadow:0 10px 25px rgba(22,163,74,0.3); transition:all 0.2s;" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 15px 30px rgba(22,163,74,0.4)';" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 10px 25px rgba(22,163,74,0.3)';">
-        <span style="font-size:28px;">📩</span>
+<div style="margin-bottom: 16px; display:flex; justify-content:flex-end;">
+    <a href="{{ url_for('notificaciones_subida') }}" style="display:inline-flex; align-items:center; gap:8px; background:#16a34a; padding:8px 16px; border-radius:8px; color:#fff; text-decoration:none; font-size:13px; font-weight:600; box-shadow:0 4px 12px rgba(22,163,74,0.3); transition:all 0.2s;" onmouseover="this.style.transform='translateY(-1px)'; this.style.boxShadow='0 6px 16px rgba(22,163,74,0.4)';" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 12px rgba(22,163,74,0.3)';">
+        <span style="font-size:14px;">📩</span>
         <span>Notificar Habitaciones a Trabajadores Próximos a subir a Faena</span>
-        <span style="background:rgba(255,255,255,0.2); padding:4px 12px; border-radius:99px; font-size:12px; margin-left:auto;">Ir al Panel de Envíos →</span>
+        <span style="opacity:0.85; margin-left:4px;">→</span>
     </a>
 </div>
 
