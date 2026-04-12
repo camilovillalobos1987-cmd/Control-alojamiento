@@ -10,21 +10,29 @@
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
-      --accent:  #3b82f6;
-      --accent-grad: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
-      --glow:    rgba(59,130,246,0.3);
-      --text:    #f1f5f9;
-      --muted:   #94a3b8;
-      --sub:     #cbd5e1;
-      --border:  rgba(255,255,255,0.12);
-      --glass-bg: rgba(10, 15, 30, 0.75);
+      --accent:  #AAFF00;
+      --accent-hover: #88CC00;
+      --accent-grad: linear-gradient(135deg, #AAFF00 0%, #88CC00 100%);
+      --glow:    rgba(170,255,0,0.4);
+      
+      --text-light: #f1f5f9;
+      --muted-light:#94a3b8;
+      --sub-light:  #cbd5e1;
+      --border-light: rgba(255,255,255,0.12);
+      
+      --carbon:  #1C1C1C;
+      --carbon-light: #2A2A2A;
+      --text-dark:#111111;
+      --muted-dark:#666666;
+      --border-dark: rgba(0,0,0,0.1);
+      --glass-form: rgba(248, 250, 252, 0.92); /* Blanco + Gris claro */
     }
 
     html, body {
       height: 100%;
       font-family: 'Inter', sans-serif;
-      background: #030712;
-      color: var(--text);
+      background: #111; /* Fallback */
+      color: var(--text-light);
       overflow: hidden;
     }
 
@@ -40,6 +48,7 @@
       padding: 0 8%;
       position: relative;
       background-image: url("{{ url_for('static', filename='img/portada.webp') }}");
+      background-color: var(--carbon);
       background-size: cover;
       background-position: center;
     }
@@ -49,7 +58,8 @@
       content: '';
       position: absolute;
       inset: 0;
-      background: linear-gradient(to right, rgba(3,7,18,0.85) 0%, rgba(3,7,18,0.4) 50%, rgba(3,7,18,0.7) 100%);
+      /* Carbón depth */
+      background: linear-gradient(to right, rgba(28,28,28,0.9) 0%, rgba(28,28,28,0.5) 50%, rgba(28,28,28,0.7) 100%);
       backdrop-filter: blur(1px);
     }
 
@@ -74,24 +84,24 @@
     }
     .hero-brand-icon {
       width: 52px; height: 52px;
-      background: var(--accent-grad);
+      background: var(--accent);
       border-radius: 14px;
       display: flex; align-items: center; justify-content: center;
       font-size: 24px;
-      box-shadow: 0 10px 25px rgba(59,130,246,0.4);
+      box-shadow: 0 10px 25px var(--glow);
     }
     .hero-brand-name { font-size: 20px; font-weight: 800; letter-spacing: -0.01em; }
-    .hero-brand-sub { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.1em; }
+    .hero-brand-sub { font-size: 11px; color: var(--muted-light); text-transform: uppercase; letter-spacing: 0.1em; }
 
     .hero-tag {
       display: inline-flex;
-      background: rgba(59,130,246,0.15);
-      border: 1px solid rgba(59,130,246,0.3);
+      background: rgba(170,255,0,0.15);
+      border: 1px solid rgba(170,255,0,0.3);
       padding: 6px 16px;
       border-radius: 100px;
       font-size: 12px;
       font-weight: 700;
-      color: #93c5fd;
+      color: var(--accent);
       margin-bottom: 24px;
       text-transform: uppercase;
       letter-spacing: 0.05em;
@@ -109,7 +119,7 @@
     .hero-description {
       font-size: 16px;
       line-height: 1.6;
-      color: var(--sub);
+      color: var(--sub-light);
       max-width: 480px;
       margin-bottom: 48px;
     }
@@ -117,21 +127,22 @@
     .hero-stats { display: flex; gap: 40px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 32px; }
     .hero-stat-item { display: flex; flex-direction: column; }
     .hero-stat-val { font-size: 24px; font-weight: 800; color: #fff; }
-    .hero-stat-lab { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
+    .hero-stat-lab { font-size: 11px; color: var(--muted-light); text-transform: uppercase; letter-spacing: 0.05em; }
 
     /* ══ Tarjeta Login (Derecha) ══ */
     .form-box {
       width: 100%;
       max-width: 420px;
-      background: var(--glass-bg);
+      background: var(--glass-form);
       backdrop-filter: blur(32px) saturate(180%);
       -webkit-backdrop-filter: blur(32px) saturate(180%);
-      border: 1px solid var(--border);
+      border: 1px solid #ffffff;
       border-radius: 28px;
       padding: 48px 40px;
-      box-shadow: 0 40px 100px -20px rgba(0, 0, 0, 0.6);
+      box-shadow: 0 40px 100px -20px rgba(0, 0, 0, 0.7);
       position: relative;
       z-index: 10;
+      color: var(--carbon); /* Force dark text in light panel */
     }
 
     @keyframes shake {
@@ -146,72 +157,83 @@
         display: flex; align-items: center; justify-content: center;
         gap: 12px; margin-bottom: 20px;
     }
-    .brand-svg-icon { width: 30px; height: 30px; filter: drop-shadow(0 0 10px var(--accent)); }
+    .brand-svg-icon { 
+        width: 30px; height: 30px; 
+        filter: drop-shadow(0 0 8px rgba(170,255,0,0.5)); 
+    }
+    .brand-svg-icon path { fill: var(--carbon); } /* Make lock icon carbon */
+    
     .form-header-badge {
       display: inline-flex;
-      background: rgba(59,130,246,0.1);
-      border: 1px solid rgba(59,130,246,0.2);
+      background: rgba(170,255,0,0.2);
+      border: 1px solid rgba(170,255,0,0.4);
       padding: 6px 14px;
       border-radius: 99px;
-      font-size: 11px; font-weight: 700;
+      font-size: 11px; font-weight: 800;
       text-transform: uppercase; letter-spacing: 0.1em;
-      color: #93c5fd;
+      color: var(--carbon);
     }
 
-    .form-header h1 { font-size: 26px; font-weight: 800; margin-bottom: 6px; }
-    .form-header p { color: var(--muted); font-size: 13.5px; }
+    .form-header h1 { font-size: 26px; font-weight: 800; margin-bottom: 6px; color: var(--carbon); }
+    .form-header p { color: var(--muted-dark); font-size: 13.5px; }
 
     .alert {
-      background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.3);
-      color: #fca5a5; padding: 12px 16px; border-radius: 12px;
+      background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3);
+      color: #b91c1c; padding: 12px 16px; border-radius: 12px;
       font-size: 13px; margin-bottom: 20px; display: flex; align-items: center; gap: 10px;
     }
 
     .field { margin-bottom: 20px; }
     .field label {
-      display: block; font-size: 12px; font-weight: 600; color: var(--muted);
+      display: block; font-size: 12px; font-weight: 700; color: var(--carbon-light);
       margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.05em;
     }
     .input-wrap { position: relative; }
     .input-icon {
       position: absolute; left: 16px; top: 50%; transform: translateY(-50%);
-      color: var(--muted); font-size: 16px;
+      color: var(--muted-dark); font-size: 16px;
     }
     .field input {
-      width: 100%; background: rgba(255,255,255,0.04);
-      border: 1px solid var(--border); border-radius: 14px;
-      padding: 14px 16px 14px 48px; color: #fff; font-size: 15px; outline: none;
+      width: 100%; background: #ffffff;
+      border: 1px solid var(--border-dark); border-radius: 14px;
+      padding: 14px 16px 14px 48px; color: var(--carbon); font-size: 15px; outline: none;
       transition: all 0.2s;
     }
+    .field input::placeholder { color: #a1a1aa; }
     .field input:focus {
-      background: rgba(255,255,255,0.06); border-color: var(--accent);
-      box-shadow: 0 0 0 4px var(--glow);
+      background: #ffffff; border-color: var(--carbon);
+      box-shadow: 0 0 0 3px rgba(28,28,28,0.15);
     }
     
     .pw-toggle {
         position: absolute; right: 14px; top: 50%; transform: translateY(-50%);
-        background: none; border: none; color: var(--muted);
+        background: none; border: none; color: var(--muted-dark);
         cursor: pointer; padding: 4px; display: flex; align-items: center;
     }
+    .pw-toggle:hover { color: var(--carbon); }
 
     .btn-submit {
       width: 100%; padding: 16px;
-      background: var(--accent-grad); border: none; border-radius: 14px;
-      color: #fff; font-size: 16px; font-weight: 700;
+      background: var(--accent); border: none; border-radius: 14px;
+      color: var(--carbon); font-size: 16px; font-weight: 800; /* Lima + Carbon */
       cursor: pointer; transition: all 0.2s;
-      box-shadow: 0 10px 20px -5px rgba(59,130,246,0.3);
+      box-shadow: 0 6px 20px rgba(170,255,0,0.3);
     }
-    .btn-submit:hover { transform: translateY(-2px); box-shadow: 0 15px 30px -5px rgba(59,130,246,0.5); }
+    .btn-submit:hover { 
+        background: var(--accent-hover);
+        transform: translateY(-2px); 
+        box-shadow: 0 10px 25px rgba(170,255,0,0.4); 
+    }
 
     .form-footer {
-      margin-top: 32px; text-align: center; font-size: 12px; color: var(--muted);
-      border-top: 1px solid var(--border); padding-top: 24px;
+      margin-top: 32px; text-align: center; font-size: 12px; color: var(--muted-dark);
+      border-top: 1px solid var(--border-dark); padding-top: 24px;
     }
 
     .dev-hint {
         margin-top: 16px; padding: 12px; border-radius: 12px;
-        background: rgba(59,130,246,0.05); border: 1px dashed rgba(59,130,246,0.2);
-        font-size: 11px; color: var(--sub);
+        background: rgba(28,28,28,0.05); border: 1px dashed rgba(28,28,28,0.15);
+        font-size: 11px; color: var(--muted-dark);
     }
   </style>
 </head>
@@ -267,8 +289,8 @@
               <path d="M12 2C9.243 2 7 4.243 7 7V10H6C4.897 10 4 10.897 4 12V20C4 21.103 4.897 22 6 22H18C19.103 22 20 21.103 20 20V12C20 10.897 19.103 10 18 10H17V7C17 4.243 14.757 2 12 2ZM9 7C9 5.346 10.346 4 12 4C13.654 4 15 5.346 15 7V10H9V7ZM18 20H6V12H18V20ZM12 14C11.171 14 10.5 14.671 10.5 15.5C10.5 16.035 10.781 16.502 11.2 16.765V18.5C11.2 18.776 11.424 19 11.7 19H12.3C12.576 19 12.8 18.776 12.8 18.5V16.765C13.219 16.502 13.5 16.035 13.5 15.5C13.5 14.671 12.829 14 12 14Z" fill="url(#grad1)"/>
               <defs>
                   <linearGradient id="grad1" x1="4" y1="2" x2="20" y2="22" gradientUnits="userSpaceOnUse">
-                      <stop stop-color="#3b82f6"/>
-                      <stop offset="1" stop-color="#1d4ed8"/>
+                      <stop stop-color="#1C1C1C"/>
+                      <stop offset="1" stop-color="#2A2A2A"/>
                   </linearGradient>
               </defs>
           </svg>
@@ -318,7 +340,7 @@
     </form>
 
     <div class="form-footer">
-      <strong style="color:#fff;">{{ NOMBRE_EMPRESA }}</strong><br>
+      <strong style="color:var(--carbon);">{{ NOMBRE_EMPRESA }}</strong><br>
       Plataforma de Habitabilidad Operacional<br>
       <span style="opacity:0.6;">Acceso restringido a personal autorizado</span>
     </div>
