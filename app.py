@@ -332,6 +332,22 @@ def is_valido_email(email):
     return re.match(r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$", email) is not None
 
 
+def _parsear_fecha(val):
+    """Acepta DD-MM-YYYY o YYYY-MM-DD, devuelve YYYY-MM-DD para la BD."""
+    if not val:
+        return None
+    val = str(val).strip()
+    if not val:
+        return None
+    from datetime import datetime
+    for fmt in ("%d-%m-%Y", "%d/%m/%Y", "%Y-%m-%d"):
+        try:
+            return datetime.strptime(val, fmt).strftime("%Y-%m-%d")
+        except ValueError:
+            continue
+    return None
+
+
 
 @app.route("/trabajadores/nuevo", methods=["GET", "POST"])
 @admin_required
@@ -644,7 +660,7 @@ def trabajadores_importar():
                 "turno":              turno,
                 "email":              email_raw,
                 "estado":             estado,
-                "fecha_inicio_ciclo": (row.get("fecha_inicio_ciclo") or "").strip() or None,
+                "fecha_inicio_ciclo": _parsear_fecha(row.get("fecha_inicio_ciclo")),
             }
             try:
                 id_nuevo = db.crear_trabajador(data)
@@ -690,9 +706,9 @@ def plantilla_csv():
         ws.column_dimensions[openpyxl.utils.get_column_letter(col)].width = w
 
     ejemplos = [
-        ["Juan Pérez González", "12.345.678-9", "Operador", "14x14", "juan@empresa.cl", "En descanso", "2026-04-01"],
-        ["María González S.", "9.876.543-2", "Supervisora", "7x7", "maria@empresa.cl", "Activo en campamento", "2026-04-05"],
-        ["Pedro Rojas M.", "11.222.333-4", "Mecánico", "5x2", "pedro@empresa.cl", "En descanso", "2026-04-03"],
+        ["Juan Pérez González", "12.345.678-9", "Operador", "14X14 A", "juan@empresa.cl", "En descanso", "01-04-2026"],
+        ["María González S.", "9.876.543-2", "Supervisora", "8X6 B", "maria@empresa.cl", "Activo en campamento", "05-04-2026"],
+        ["Pedro Rojas M.", "11.222.333-4", "Mecánico", "4X3", "pedro@empresa.cl", "En descanso", "03-04-2026"],
     ]
     for r, fila in enumerate(ejemplos, start=2):
         for c, val in enumerate(fila, start=1):
