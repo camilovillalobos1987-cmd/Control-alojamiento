@@ -719,6 +719,18 @@ def asignar_habitaciones_masivo():
     return redirect(url_for("trabajadores_lista"))
 
 
+
+@app.route("/trabajadores/<int:id>/eliminar", methods=["POST"])
+@admin_required
+def trabajador_eliminar(id):
+    t = db.get_trabajador(id)
+    if not t:
+        abort(404)
+    db.eliminar_trabajador(id)
+    flash(f"Trabajador '{t['nombre']}' eliminado del sistema.", "success")
+    return redirect(url_for("trabajadores_lista"))
+
+
 # ═══════════════════════════════════════════════════════
 # HABITACIONES
 # ═══════════════════════════════════════════════════════

@@ -102,8 +102,11 @@
               <span class="badge badge-green badge-sm">Activo</span>
             {% endif %}
           </td>
-          <td>
+          <td style="display:flex;gap:6px;align-items:center;">
             <a href="{{ url_for('trabajador_detalle', id=t.id) }}" class="btn btn-secondary btn-sm">Ver</a>
+            <button type="button" class="btn btn-sm" style="background:#dc2626;color:#fff;border:none;cursor:pointer;"
+                    data-id="{{ t.id }}" data-nombre="{{ t.nombre }}"
+                    onclick="confirmarEliminar(this.dataset.id, this.dataset.nombre)">🗑 Eliminar</button>
           </td>
         </tr>
         {% endfor %}
@@ -167,6 +170,33 @@
     </div>
   </div>
 </div>
+
+<!-- MODAL CONFIRMAR ELIMINAR TRABAJADOR -->
+<div class="modal-backdrop" id="modal-eliminar-trabajador">
+  <div class="modal" style="max-width:400px;">
+    <div class="modal-title">🗑 Eliminar Trabajador</div>
+    <div style="font-size:13px;color:var(--text-secondary);margin-bottom:16px;line-height:1.6;">
+      ¿Eliminar a <strong id="modal-eliminar-nombre"></strong> del sistema?<br>
+      Se liberará su habitación asignada. Esta acción no se puede deshacer.
+    </div>
+    <div class="modal-footer">
+      <button type="button" onclick="closeModal('modal-eliminar-trabajador')" class="btn btn-secondary">Cancelar</button>
+      <button type="button" onclick="document.getElementById('form-eliminar-trabajador').submit()" class="btn btn-sm" style="background:#dc2626;color:#fff;border:none;cursor:pointer;padding:8px 16px;border-radius:6px;font-weight:600;">
+        Sí, eliminar
+      </button>
+    </div>
+  </div>
+</div>
+
+<form id="form-eliminar-trabajador" method="POST" action="" style="display:none;"></form>
+
+<script>
+function confirmarEliminar(id, nombre) {
+  document.getElementById('modal-eliminar-nombre').textContent = nombre;
+  document.getElementById('form-eliminar-trabajador').action = '/trabajadores/' + id + '/eliminar';
+  openModal('modal-eliminar-trabajador');
+}
+</script>
 
 <!-- Form oculto — envío real al servidor -->
 <form id="form-asignar-masivo"

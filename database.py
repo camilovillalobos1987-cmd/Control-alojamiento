@@ -1029,6 +1029,15 @@ def usuario_existe(username: str) -> bool:
     conn.close()
     return row is not None
 
+def eliminar_trabajador(trabajador_id: int):
+    conn = get_db()
+    conn.execute("UPDATE trabajadores SET habitacion_id=NULL WHERE id=?", (trabajador_id,))
+    conn.execute("DELETE FROM novedades WHERE trabajador_id=?", (trabajador_id,))
+    conn.execute("DELETE FROM trabajadores WHERE id=?", (trabajador_id,))
+    conn.commit()
+    conn.close()
+
+
 def eliminar_usuario(user_id: int):
     conn = get_db()
     conn.execute("DELETE FROM usuarios WHERE id = ?", (user_id,))
