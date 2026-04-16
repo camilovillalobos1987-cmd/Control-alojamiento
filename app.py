@@ -585,17 +585,29 @@ def trabajadores_importar():
     resultado = None
     if request.method == "POST":
         archivo = request.files.get("archivo")
-        if not archivo or not archivo.filename.lower().endswith(".csv"):
-            flash("Por favor sube un archivo .csv válido.", "danger")
+        fname = archivo.filename.lower() if archivo else ""
+        if not archivo or not (fname.endswith(".xlsx") or fname.endswith(".csv")):
+            flash("Por favor sube un archivo .xlsx o .csv válido.", "danger")
             return redirect(url_for("trabajadores_importar"))
 
-        content = archivo.read().decode("utf-8-sig")  # utf-8-sig maneja BOM de Excel
-        reader = csv.DictReader(io.StringIO(content))
         creados, omitidos, errores = 0, 0, []
 
+        if fname.endswith(".xlsx"):
+            import openpyxl
+            wb = openpyxl.load_workbook(io.BytesIO(archivo.read()), data_only=True)
+            ws = wb.active
+            headers = [str(c.value).strip() if c.value else "" for c in next(ws.iter_rows(min_row=1, max_row=1))]
+            def xlsx_rows():
+                for row in ws.iter_rows(min_row=2, values_only=True):
+                    yield {headers[j]: (str(v).strip() if v is not None else "") for j, v in enumerate(row) if j < len(headers)}
+            rows_iter = enumerate(xlsx_rows(), start=2)
+        else:
+            content = archivo.read().decode("utf-8-sig")
+            rows_iter = enumerate(csv.DictReader(io.StringIO(content)), start=2)
+
         TURNOS, _, _ = db.get_turnos_dicts()
-        
-        for i, row in enumerate(reader, start=2):
+
+        for i, row in rows_iter:
             nombre = (row.get("nombre") or "").strip()
             rut_raw = (row.get("rut") or "").strip()
             
@@ -657,23 +669,55 @@ def trabajadores_importar():
 @app.route("/trabajadores/importar/plantilla")
 @admin_required
 def plantilla_csv():
-    """Descarga plantilla CSV lista para completar en Excel."""
-    filas = [
-        ["nombre", "rut", "cargo", "turno", "email", "estado", "fecha_inicio_ciclo"],
-        ["Juan Pérez González", "12.345.678-9", "Operador", "14x14",
-         "juan@empresa.cl", "En descanso", "2026-04-01"],
-        ["María González S.", "9.876.543-2", "Supervisora", "7x7",
-         "maria@empresa.cl", "Activo en campamento", "2026-04-05"],
-        ["Pedro Rojas M.", "11.222.333-4", "Mecánico", "5x2",
-         "pedro@empresa.cl", "En descanso", "2026-04-03"],
+    import openpyxl
+    from openpyxl.styles import Font, PatternFill, Alignment
+    from openpyxl.worksheet.datavalidation import DataValidation
+
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Trabajadores"
+
+    headers = ["nombre", "rut", "cargo", "turno", "email", "estado", "fecha_inicio_ciclo"]
+    col_widths = [30, 16, 20, 10, 30, 22, 22]
+    header_fill = PatternFill("solid", fgColor="1E3A5F")
+    header_font = Font(bold=True, color="FFFFFF")
+
+    for col, (h, w) in enumerate(zip(headers, col_widths), start=1):
+        cell = ws.cell(row=1, column=col, value=h)
+        cell.fill = header_fill
+        cell.font = header_font
+        cell.alignment = Alignment(horizontal="center")
+        ws.column_dimensions[openpyxl.utils.get_column_letter(col)].width = w
+
+    ejemplos = [
+        ["Juan Pérez González", "12.345.678-9", "Operador", "14x14", "juan@empresa.cl", "En descanso", "2026-04-01"],
+        ["María González S.", "9.876.543-2", "Supervisora", "7x7", "maria@empresa.cl", "Activo en campamento", "2026-04-05"],
+        ["Pedro Rojas M.", "11.222.333-4", "Mecánico", "5x2", "pedro@empresa.cl", "En descanso", "2026-04-03"],
     ]
-    out = io.StringIO()
-    csv.writer(out).writerows(filas)
+    for r, fila in enumerate(ejemplos, start=2):
+        for c, val in enumerate(fila, start=1):
+            ws.cell(row=r, column=c, value=val)
+
+    estados = '"Activo en campamento,En descanso,Permiso,Falla,Licencia Médica,Vacaciones,Desvinculado"'
+    dv_estado = DataValidation(type="list", formula1=estados, allow_blank=True, showDropDown=False)
+    dv_estado.sqref = "F2:F1000"
+    ws.add_data_validation(dv_estado)
+
+    TURNOS, _, _ = db.get_turnos_dicts()
+    if TURNOS:
+        turnos_str = '"' + ",".join(TURNOS.keys()) + '"'
+        dv_turno = DataValidation(type="list", formula1=turnos_str, allow_blank=True, showDropDown=False)
+        dv_turno.sqref = "D2:D1000"
+        ws.add_data_validation(dv_turno)
+
+    out = io.BytesIO()
+    wb.save(out)
+    out.seek(0)
     return send_file(
-        io.BytesIO(out.getvalue().encode("utf-8-sig")),
-        mimetype="text/csv",
+        out,
+        mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         as_attachment=True,
-        download_name="plantilla_trabajadores.csv",
+        download_name="plantilla_trabajadores.xlsx",
     )
 
 

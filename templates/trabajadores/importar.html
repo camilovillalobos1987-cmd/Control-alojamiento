@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block title %}Importar Trabajadores{% endblock %}
 {% block page_title %}📥 Importación Masiva{% endblock %}
-{% block page_subtitle %}Carga trabajadores desde Excel/CSV y asigna habitaciones masivamente{% endblock %}
+{% block page_subtitle %}Carga trabajadores desde Excel (.xlsx) y asigna habitaciones masivamente{% endblock %}
 
 {% block topbar_actions %}
   <a href="{{ url_for('trabajadores_lista') }}" class="btn btn-secondary">← Volver a Trabajadores</a>
@@ -15,12 +15,12 @@
 
     <!-- PASO 1: DESCARGAR PLANTILLA -->
     <div class="card">
-      <div class="card-title">📋 Paso 1 — Descargar Plantilla</div>
+      <div class="card-title">📋 Paso 1 — Descargar Plantilla Excel</div>
       <p style="font-size:13px;color:var(--text-secondary);margin-bottom:12px;">
-        Descarga la plantilla CSV, ábrela en Excel o Google Sheets, completa los datos y guárdala como <strong>.csv</strong>.
+        Descarga la plantilla, ábrela en Excel, completa los datos y súbela directamente como <strong>.xlsx</strong>. Las columnas <em>estado</em> y <em>turno</em> tienen lista desplegable.
       </p>
       <a href="{{ url_for('plantilla_csv') }}" class="btn btn-primary w-full">
-        ⬇️ Descargar Plantilla CSV
+        ⬇️ Descargar Plantilla Excel (.xlsx)
       </a>
       <div style="margin-top:14px;background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:8px;overflow:hidden;">
         <div style="background:rgba(255,255,255,0.06);padding:8px 12px;font-size:10px;font-weight:700;letter-spacing:0.06em;color:var(--text-muted);">
@@ -53,7 +53,7 @@
 
     <!-- PASO 2: SUBIR ARCHIVO -->
     <div class="card">
-      <div class="card-title">📤 Paso 2 — Subir Archivo CSV</div>
+      <div class="card-title">📤 Paso 2 — Subir Archivo Excel</div>
       <form method="POST" action="{{ url_for('trabajadores_importar') }}" enctype="multipart/form-data">
         <div id="drop-zone"
              style="border:2px dashed var(--border);border-radius:10px;padding:32px;text-align:center;cursor:pointer;transition:all 0.2s;"
@@ -61,12 +61,12 @@
              ondragleave="this.style.borderColor='var(--border)';this.style.background='';"
              ondrop="handleDrop(event)"
              onclick="document.getElementById('inp-csv').click()">
-          <div style="font-size:36px;margin-bottom:8px;">📁</div>
-          <div style="font-size:14px;font-weight:600;color:var(--text-primary);">Arrastra tu CSV aquí</div>
-          <div style="font-size:12px;color:var(--text-muted);margin-top:4px;">o haz clic para seleccionar</div>
+          <div style="font-size:36px;margin-bottom:8px;">📊</div>
+          <div style="font-size:14px;font-weight:600;color:var(--text-primary);">Arrastra tu archivo Excel aquí</div>
+          <div style="font-size:12px;color:var(--text-muted);margin-top:4px;">o haz clic para seleccionar · .xlsx o .csv</div>
           <div id="nombre-archivo" style="margin-top:10px;font-size:12px;color:var(--accent);"></div>
         </div>
-        <input type="file" id="inp-csv" name="archivo" accept=".csv" style="display:none;"
+        <input type="file" id="inp-csv" name="archivo" accept=".xlsx,.csv" style="display:none;"
                onchange="mostrarNombre(this)"/>
         <button type="submit" class="btn btn-primary w-full" style="margin-top:12px;">
           🚀 Importar Trabajadores
