@@ -242,29 +242,6 @@ def _estado_visual(activos: int, capacidad: int, estado_manual: str) -> str:
 
 
 def enmascarar_datos_si_demo(t):
-    if not t:
-        return t
-    try:
-        from flask import session
-        if session and session.get("username") == "demo":
-            t = dict(t)
-            if "rut" in t and t["rut"]:
-                rut = t["rut"]
-                if len(rut) > 4:
-                    t["rut"] = rut[:2] + ".XXX.XXX-" + rut[-1]
-                else:
-                    t["rut"] = "XX.XXX.XXX-X"
-            if "email" in t and t["email"]:
-                email = t["email"]
-                if "@" in email:
-                    user, domain = email.split("@", 1)
-                    masked_user = user[0] + "***" + user[-1] if len(user) > 2 else "***"
-                    masked_domain = domain[0] + "***" + domain[-1] if len(domain) > 2 else "***"
-                    t["email"] = f"{masked_user}@{masked_domain}"
-                else:
-                    t["email"] = "k***@e***.cl"
-    except RuntimeError:
-        pass
     return t
 
 

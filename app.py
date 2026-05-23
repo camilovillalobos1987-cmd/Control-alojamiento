@@ -69,13 +69,13 @@ def inject_globals():
 @app.before_request
 def bloquear_post_para_demo():
     if session.get("username") == "demo":
-        if request.method in ["POST", "PUT", "DELETE", "PATCH"]:
-            # Permite el POST al login para poder iniciar sesión
-            if request.path == "/login":
-                return
-            flash("⚠️ Esta es una cuenta de demostración. Las acciones de modificación están deshabilitadas.", "warning")
-            # Redirige de vuelta o al dashboard
+        path = request.path.lower()
+        # Bloquear acceso a administración de usuarios (cambio de claves) y limpieza de base de datos
+        if "/admin/usuarios" in path or "/admin/limpiar-bd" in path:
+            flash("🔒 Esta es una cuenta de demostración. El acceso a la administración de usuarios, cambio de contraseñas y mantenimiento del sistema está restringido por seguridad.", "danger")
             referrer = request.referrer or url_for("dashboard")
+            if "/admin/usuarios" in referrer or "/admin/limpiar-bd" in referrer:
+                referrer = url_for("dashboard")
             return redirect(referrer)
 
 
