@@ -66,6 +66,19 @@ def inject_globals():
     }
 
 
+@app.before_request
+def bloquear_post_para_demo():
+    if session.get("username") == "demo":
+        if request.method in ["POST", "PUT", "DELETE", "PATCH"]:
+            # Permite el POST al login para poder iniciar sesión
+            if request.path == "/login":
+                return
+            flash("⚠️ Esta es una cuenta de demostración. Las acciones de modificación están deshabilitadas.", "warning")
+            # Redirige de vuelta o al dashboard
+            referrer = request.referrer or url_for("dashboard")
+            return redirect(referrer)
+
+
 # ═══════════════════════════════════════════════════════
 # AUTENTICACIÓN
 # ═══════════════════════════════════════════════════════

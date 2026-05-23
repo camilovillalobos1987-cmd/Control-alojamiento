@@ -241,6 +241,33 @@ def _estado_visual(activos: int, capacidad: int, estado_manual: str) -> str:
     return 'parcial'
 
 
+def enmascarar_datos_si_demo(t):
+    if not t:
+        return t
+    try:
+        from flask import session
+        if session and session.get("username") == "demo":
+            t = dict(t)
+            if "rut" in t and t["rut"]:
+                rut = t["rut"]
+                if len(rut) > 4:
+                    t["rut"] = rut[:2] + ".XXX.XXX-" + rut[-1]
+                else:
+                    t["rut"] = "XX.XXX.XXX-X"
+            if "email" in t and t["email"]:
+                email = t["email"]
+                if "@" in email:
+                    user, domain = email.split("@", 1)
+                    masked_user = user[0] + "***" + user[-1] if len(user) > 2 else "***"
+                    masked_domain = domain[0] + "***" + domain[-1] if len(domain) > 2 else "***"
+                    t["email"] = f"{masked_user}@{masked_domain}"
+                else:
+                    t["email"] = "k***@e***.cl"
+    except RuntimeError:
+        pass
+    return t
+
+
 def get_todos_trabajadores():
     conn = get_db()
     rows = conn.execute("""
@@ -250,7 +277,7 @@ def get_todos_trabajadores():
         ORDER BY t.nombre
     """).fetchall()
     conn.close()
-    return [dict(r) for r in rows]
+    return [enmascarar_datos_si_demo(dict(r)) for r in rows]
 
 
 def get_trabajador(id):
@@ -265,7 +292,7 @@ def get_trabajador(id):
         WHERE t.id = ?
     """, (id,)).fetchone()
     conn.close()
-    return dict(row) if row else None
+    return enmascarar_datos_si_demo(dict(row)) if row else None
 
 
 def crear_trabajador(data: dict) -> int:
@@ -323,7 +350,7 @@ def get_trabajador_by_token(token: str):
         WHERE t.qr_token=? AND t.qr_revocado=0
     """, (token,)).fetchone()
     conn.close()
-    return dict(row) if row else None
+    return enmascarar_datos_si_demo(dict(row)) if row else None
 
 
 # ─────────────────────────── HABITACIONES ──────────────────────────────────
@@ -376,7 +403,7 @@ def get_ocupantes_habitacion(hab_id: int) -> list:
         ORDER BY nombre
     """, (hab_id,)).fetchall()
     conn.close()
-    return [dict(r) for r in rows]
+    return [enmascarar_datos_si_demo(dict(r)) for r in rows]
 
 
 def renombrar_modulo(modulo_actual: str, modulo_nuevo: str):
@@ -610,7 +637,7 @@ def get_trabajadores_sin_habitacion() -> list:
         ORDER BY nombre
     """).fetchall()
     conn.close()
-    return [dict(r) for r in rows]
+    return [enmascarar_datos_si_demo(dict(r)) for r in rows]
 
 
 def liberar_habitacion_de_trabajador(trabajador_id: int):
@@ -639,8 +666,6 @@ def actualizar_estado_habitacion(hab_id: int, estado: str):
     conn.commit()
     conn.close()
 
-
-# ─────────────────────────── MOVIMIENTOS ───────────────────────────────────
 
 def registrar_movimiento(trabajador_id: int, tipo: str, metodo: str = "QR", obs: str = ""):
     conn = get_db()
@@ -678,7 +703,7 @@ def get_movimientos(limit: int = 200, trabajador_id: int = None):
             ORDER BY m.fecha_hora DESC LIMIT ?
         """, (limit,)).fetchall()
     conn.close()
-    return [dict(r) for r in rows]
+    return [enmascarar_datos_si_demo(dict(r)) for r in rows]
 
 
 # ─────────────────────────── NOVEDADES ─────────────────────────────────────
@@ -706,7 +731,7 @@ def get_novedades(limit: int = 100):
         ORDER BY n.created_at DESC LIMIT ?
     """, (limit,)).fetchall()
     conn.close()
-    return [dict(r) for r in rows]
+    return [enmascarar_datos_si_demo(dict(r)) for r in rows]
 
 def get_novedades_mes(year: int, month: int):
     conn = get_db()

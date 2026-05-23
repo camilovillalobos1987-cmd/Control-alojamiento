@@ -39,6 +39,7 @@ def init():
     usuarios_default = [
         ("admin",  "admin123",  "admin",  "Administrador"),
         ("visor",  "visor123",  "viewer", "Visor"),
+        ("demo",   "demo123",   "admin",  "Usuario Demo"),
     ]
     for username, password, rol, nombre in usuarios_default:
         if not usuario_existe(username):
