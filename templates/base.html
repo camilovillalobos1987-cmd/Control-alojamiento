@@ -11,12 +11,6 @@
 </head>
 <body>
 
-  {% if session.get('username') == 'demo' %}
-  <div class="demo-banner" style="background: linear-gradient(135deg, #1e3a8a, #0f766e); color: white; padding: 10px 20px; text-align: center; font-size: 14px; font-weight: 500; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); z-index: 9999; position: relative;">
-    <span>⚡ <strong>Entorno de Demostración:</strong> Estás explorando el sistema como Administrador Demo. Puedes probar todas las funciones operativas (crear trabajadores, asignar habitaciones, etc.), pero la gestión de usuarios y seguridad está restringida.</span>
-  </div>
-  {% endif %}
-
 <!-- ══ SIDEBAR ══ -->
 <aside class="sidebar" id="sidebar">
   <div class="sidebar-logo">
@@ -114,6 +108,12 @@
 
 <!-- ══ MAIN ══ -->
 <div class="main-content">
+
+  {% if session.get('username') == 'demo' %}
+  <div class="demo-banner" style="background: linear-gradient(135deg, #1e3a8a, #0f766e); color: white; padding: 10px 20px; text-align: center; font-size: 14px; font-weight: 500; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); z-index: 9999; position: relative;">
+    <span>⚡ <strong>Entorno de Demostración:</strong> Estás explorando el sistema como Administrador Demo. Puedes probar todas las funciones operativas (crear trabajadores, asignar habitaciones, etc.), pero la gestión de usuarios y seguridad está restringida.</span>
+  </div>
+  {% endif %}
   {% block topbar %}
   <header class="topbar">
     <div class="topbar-left">
