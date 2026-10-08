@@ -1,22 +1,305 @@
-import sqlite3
 import json
+import re
 from datetime import datetime
-from config import DATABASE_PATH
+from config import DATABASE_PATH, DATABASE_URL
+
+# ── Selección de motor ──────────────────────────────────────────────────────
+# Si DATABASE_URL está configurada -> PostgreSQL (producción).
+# Si no -> SQLite local (desarrollo), comportamiento original.
+USE_PG = bool(DATABASE_URL and DATABASE_URL.strip())
+
+
+# ── Fila compatible: row['col'] y row[0] ─────────────────────────────────────
+class _CompatRow:
+    """Emula sqlite3.Row sobre PostgreSQL: acceso por nombre y por índice."""
+
+    __slots__ = ("_cols", "_vals", "_map")
+
+    def __init__(self, cols, vals):
+        self._cols = list(cols)
+        self._vals = tuple(vals)
+        m = {}
+        for c, v in zip(self._cols, self._vals):
+            m[c] = v  # ante columnas duplicadas gana la última, igual que sqlite3.Row
+        self._map = m
+
+    def __getitem__(self, key):
+        if isinstance(key, int):
+            return self._vals[key]
+        return self._map[key]
+
+    def __len__(self):
+        return len(self._vals)
+
+    def __iter__(self):
+        return iter(self._vals)
+
+    def keys(self):
+        return list(self._cols)
+
+    def get(self, key, default=None):
+        return self._map.get(key, default)
+
+    def __repr__(self):
+        return f"_CompatRow({self._map!r})"
+
+
+def _pg_row_factory(cursor):
+    cols = [d[0] for d in cursor.description] if cursor.description else []
+
+    def make_row(values):
+        return _CompatRow(cols, values)
+
+    return make_row
+
+
+# ── Traducción SQLite → PostgreSQL ───────────────────────────────────────────
+_NAMED_PARAM = re.compile(r":([a-zA-Z_][a-zA-Z0-9_]*)")
+
+
+def _to_pg(sql: str, params=None) -> str:
+    """Traduce el dialecto SQLite usado en este proyecto a PostgreSQL.
+
+    - INSERT OR IGNORE INTO -> INSERT INTO ... ON CONFLICT DO NOTHING
+    - :nombre -> %(nombre)s   (solo si params es dict y contiene la clave;
+                               así no toca literales como 'HH24:MI:SS')
+    - ? -> %s                 (placeholders posicionales)
+    """
+    if "INSERT OR IGNORE INTO" in sql:
+        sql = sql.replace("INSERT OR IGNORE INTO", "INSERT INTO", 1).rstrip().rstrip(";")
+        sql = sql + " ON CONFLICT DO NOTHING"
+    if isinstance(params, dict):
+        def _rep(m):
+            return f"%({m.group(1)})s" if m.group(1) in params else m.group(0)
+        sql = _NAMED_PARAM.sub(_rep, sql)
+    sql = sql.replace("?", "%s")
+    return sql
+
+
+class _Cursor:
+    """Cursor que traduce placeholders cuando el motor es PostgreSQL."""
+
+    def __init__(self, cursor, pg: bool):
+        self._cur = cursor
+        self._pg = pg
+
+    def execute(self, sql, params=None):
+        if params is None:
+            params = ()
+        if self._pg:
+            sql = _to_pg(sql, params)
+        return self._cur.execute(sql, params)
+
+    def execute_raw(self, sql, params=()):
+        """Ejecuta SQL ya en dialecto PostgreSQL (uso interno)."""
+        return self._cur.execute(sql, params)
+
+    def executemany(self, sql, seq_of_params):
+        if self._pg:
+            seq = list(seq_of_params)
+            sql = _to_pg(sql, seq[0] if seq else None)
+            seq_of_params = seq
+        return self._cur.executemany(sql, seq_of_params)
+
+    def fetchone(self):
+        return self._cur.fetchone()
+
+    def fetchall(self):
+        return self._cur.fetchall()
+
+    def __iter__(self):
+        return iter(self._cur)
+
+    @property
+    def lastrowid(self):
+        return self._cur.lastrowid
+
+    @property
+    def description(self):
+        return self._cur.description
+
+
+class _Connection:
+    """Conexión con la misma interfaz para SQLite y PostgreSQL."""
+
+    def __init__(self, conn, pg: bool):
+        self._conn = conn
+        self._pg = pg
+
+    def execute(self, sql, params=None):
+        return self.cursor().execute(sql, params)
+
+    def cursor(self):
+        return _Cursor(self._conn.cursor(), self._pg)
+
+    def executescript(self, sql):
+        if self._pg:
+            # psycopg ejecuta múltiples statements en un solo execute
+            cur = self._conn.cursor()
+            try:
+                cur.execute(_to_pg(sql))
+            finally:
+                cur.close()
+            return None
+        return self._conn.executescript(sql)
+
+    def commit(self):
+        return self._conn.commit()
+
+    def rollback(self):
+        return self._conn.rollback()
+
+    def close(self):
+        return self._conn.close()
 
 
 def get_db():
+    """Retorna una conexión (PostgreSQL si DATABASE_URL está definida, si no SQLite)."""
+    if USE_PG:
+        import psycopg
+        conn = psycopg.connect(DATABASE_URL, row_factory=_pg_row_factory)
+        return _Connection(conn, pg=True)
+    import sqlite3
     conn = sqlite3.connect(DATABASE_PATH, timeout=10)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA journal_mode=WAL")
     conn.execute("PRAGMA foreign_keys = ON")
-    return conn
+    return _Connection(conn, pg=False)
+
+
+def _insert_returning_id(cur, sql, params):
+    """Ejecuta un INSERT y retorna el id generado.
+
+    PostgreSQL: usa RETURNING id. SQLite: usa cursor.lastrowid.
+    Si el INSERT no inserta (ON CONFLICT DO NOTHING), retorna None.
+    """
+    if USE_PG:
+        translated = _to_pg(sql, params).rstrip().rstrip(";") + " RETURNING id"
+        cur.execute_raw(translated, params)
+        row = cur.fetchone()
+        return row[0] if row else None
+    cur.execute(sql, params)
+    return cur.lastrowid
+
+
+
+# ── DDL PostgreSQL (esquema final, ya migrado) ────────────────────────────────
+_PG_TABLES = {
+    "habitaciones": """
+        CREATE TABLE IF NOT EXISTS habitaciones (
+            id              SERIAL PRIMARY KEY,
+            modulo          TEXT NOT NULL,
+            piso            INTEGER NOT NULL,
+            numero          TEXT NOT NULL,
+            estado          TEXT DEFAULT 'Disponible' CHECK(estado IN (
+                                'Disponible','Mantenimiento'
+                            )),
+            capacidad       INTEGER DEFAULT 3,
+            UNIQUE(modulo, piso, numero)
+        )
+    """,
+    "turnos": """
+        CREATE TABLE IF NOT EXISTS turnos (
+            id          SERIAL PRIMARY KEY,
+            nombre      TEXT UNIQUE NOT NULL,
+            work        INTEGER NOT NULL,
+            rest        INTEGER NOT NULL,
+            ref_inicio  TEXT,
+            grupo       TEXT,
+            contraturno TEXT
+        )
+    """,
+    "usuarios": """
+        CREATE TABLE IF NOT EXISTS usuarios (
+            id          SERIAL PRIMARY KEY,
+            username    TEXT UNIQUE NOT NULL,
+            password    TEXT NOT NULL,
+            rol         TEXT NOT NULL DEFAULT 'viewer' CHECK(rol IN ('admin','viewer')),
+            nombre      TEXT,
+            created_at  TEXT DEFAULT (to_char(now(), 'YYYY-MM-DD HH24:MI:SS'))
+        )
+    """,
+    "trabajadores": """
+        CREATE TABLE IF NOT EXISTS trabajadores (
+            id                  SERIAL PRIMARY KEY,
+            nombre              TEXT NOT NULL,
+            rut                 TEXT UNIQUE NOT NULL,
+            cargo               TEXT,
+            turno               TEXT,
+            email               TEXT,
+            estado              TEXT DEFAULT 'En descanso' CHECK(estado IN (
+                                    'Activo en campamento','En descanso','Permiso',
+                                    'Falla','Licencia Médica','Vacaciones','Desvinculado'
+                                )),
+            fecha_inicio_ciclo  TEXT,
+            qr_token            TEXT UNIQUE,
+            qr_revocado         INTEGER DEFAULT 0,
+            habitacion_id       INTEGER REFERENCES habitaciones(id) ON DELETE SET NULL,
+            created_at          TEXT DEFAULT (to_char(now(), 'YYYY-MM-DD HH24:MI:SS'))
+        )
+    """,
+    "movimientos": """
+        CREATE TABLE IF NOT EXISTS movimientos (
+            id              SERIAL PRIMARY KEY,
+            trabajador_id   INTEGER REFERENCES trabajadores(id),
+            fecha_hora      TEXT DEFAULT (to_char(now(), 'YYYY-MM-DD HH24:MI:SS')),
+            tipo            TEXT CHECK(tipo IN ('Entrada','Salida')),
+            metodo          TEXT DEFAULT 'QR',
+            observacion     TEXT
+        )
+    """,
+    "novedades": """
+        CREATE TABLE IF NOT EXISTS novedades (
+            id              SERIAL PRIMARY KEY,
+            trabajador_id   INTEGER REFERENCES trabajadores(id),
+            tipo            TEXT CHECK(tipo IN (
+                                'Cambio de Turno','Permiso','Falla',
+                                'Licencia Médica','Vacaciones','Desvinculación','Otro'
+                            )),
+            fecha_inicio    TEXT,
+            fecha_fin       TEXT,
+            pieza_liberada  INTEGER DEFAULT 0,
+            observacion     TEXT,
+            registrado_por  TEXT DEFAULT 'Administrador',
+            created_at      TEXT DEFAULT (to_char(now(), 'YYYY-MM-DD HH24:MI:SS'))
+        )
+    """,
+    "censo": """
+        CREATE TABLE IF NOT EXISTS censo (
+            id              SERIAL PRIMARY KEY,
+            trabajador_id   INTEGER REFERENCES trabajadores(id) ON DELETE CASCADE,
+            habitacion_id   INTEGER REFERENCES habitaciones(id) ON DELETE SET NULL,
+            fecha           TEXT DEFAULT (to_char(now(), 'YYYY-MM-DD')),
+            hora            TEXT DEFAULT (to_char(now(), 'HH24:MI:SS')),
+            usuario         TEXT
+        )
+    """,
+    "notificaciones_log": """
+        CREATE TABLE IF NOT EXISTS notificaciones_log (
+            id              SERIAL PRIMARY KEY,
+            trabajador_id   INTEGER REFERENCES trabajadores(id),
+            tipo            TEXT,
+            destinatario    TEXT,
+            enviado_en      TEXT DEFAULT (to_char(now(), 'YYYY-MM-DD HH24:MI:SS')),
+            status          TEXT DEFAULT 'Enviado'
+        )
+    """,
+}
+
+# Orden de creación (respeta las FK)
+_PG_TABLE_ORDER = [
+    "habitaciones", "turnos", "usuarios", "trabajadores",
+    "movimientos", "novedades", "censo", "notificaciones_log",
+]
 
 
 def init_db():
     conn = get_db()
-    c = conn.cursor()
-
-    c.executescript("""
+    if USE_PG:
+        for t in _PG_TABLE_ORDER:
+            conn.execute(_PG_TABLES[t])
+    else:
+        conn.executescript("""
         CREATE TABLE IF NOT EXISTS trabajadores (
             id                  INTEGER PRIMARY KEY AUTOINCREMENT,
             nombre              TEXT NOT NULL,
@@ -116,38 +399,51 @@ def migrar_db():
     """
     Migración incremental. Se ejecuta en cada arranque y es idempotente.
     Agrega columnas nuevas si no existen y migra datos del esquema antiguo (1:1) al nuevo (1:N).
+    En PostgreSQL el DDL ya nace con el esquema final; las migraciones son no-op.
     """
     conn = get_db()
 
+    if USE_PG:
+        def _cols(table):
+            return {r[0] for r in conn.execute(
+                "SELECT column_name FROM information_schema.columns WHERE table_name = ?",
+                (table,)).fetchall()}
+
+        def _tablas():
+            return {r[0] for r in conn.execute(
+                "SELECT tablename FROM pg_tables WHERE schemaname = 'public'").fetchall()}
+    else:
+        def _cols(table):
+            return {r[1] for r in conn.execute(f"PRAGMA table_info({table})").fetchall()}
+
+        def _tablas():
+            return {r[0] for r in conn.execute(
+                "SELECT name FROM sqlite_master WHERE type='table'").fetchall()}
+
     # ── 1. Agregar habitacion_id a trabajadores ──────────────────────────────
-    cols_t = {r[1] for r in conn.execute("PRAGMA table_info(trabajadores)").fetchall()}
-    if 'habitacion_id' not in cols_t:
+    if 'habitacion_id' not in _cols('trabajadores'):
         conn.execute("ALTER TABLE trabajadores ADD COLUMN habitacion_id INTEGER REFERENCES habitaciones(id)")
-        # Migrar: copiar la relación inversa desde habitaciones.trabajador_id
-        conn.execute("""
-            UPDATE trabajadores
-            SET habitacion_id = (
-                SELECT h.id FROM habitaciones h WHERE h.trabajador_id = trabajadores.id
-            )
-        """)
+        # Migrar: copiar la relación inversa desde habitaciones.trabajador_id (solo esquema antiguo)
+        if 'trabajador_id' in _cols('habitaciones'):
+            conn.execute("""
+                UPDATE trabajadores
+                SET habitacion_id = (
+                    SELECT h.id FROM habitaciones h WHERE h.trabajador_id = trabajadores.id
+                )
+            """)
 
     # ── 2. Agregar capacidad a habitaciones ──────────────────────────────────
-    cols_h = {r[1] for r in conn.execute("PRAGMA table_info(habitaciones)").fetchall()}
-    if 'capacidad' not in cols_h:
+    if 'capacidad' not in _cols('habitaciones'):
         conn.execute("ALTER TABLE habitaciones ADD COLUMN capacidad INTEGER DEFAULT 3")
 
-    # ── 3. Relajar CHECK constraint en habitaciones.estado (Disponible ya no es Ocupada)
-    #       SQLite no soporta ALTER para CHECK, pero la columna 'estado' pasa a ser
-    #       solo 'Disponible' | 'Mantenimiento'. Dejamos filas con 'Ocupada' como
-    #       'Disponible' porque el conteo de ocupantes viene de trabajadores.
+    # ── 3. Normalizar estado 'Ocupada' -> 'Disponible' ───────────────────────
     conn.execute("""
         UPDATE habitaciones SET estado = 'Disponible' WHERE estado = 'Ocupada'
     """)
 
-    # ── 4. Crear tabla censo si no existe (BD ya iniciada antes de esta versión) ──
-    tablas = {r[0] for r in conn.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()}
-    if 'censo' not in tablas:
-        conn.execute("""
+    # ── 4. Crear tabla censo si no existe ────────────────────────────────────
+    if 'censo' not in _tablas():
+        conn.execute(_PG_TABLES['censo'] if USE_PG else """
             CREATE TABLE censo (
                 id              INTEGER PRIMARY KEY AUTOINCREMENT,
                 trabajador_id   INTEGER REFERENCES trabajadores(id) ON DELETE CASCADE,
@@ -158,9 +454,9 @@ def migrar_db():
             )
         """)
 
-    # ── 4.5. Crear tabla turnos si no existe y poblarla ──
-    if 'turnos' not in tablas:
-        conn.execute("""
+    # ── 4.5. Crear tabla turnos si no existe y poblarla ──────────────────────
+    if 'turnos' not in _tablas():
+        conn.execute(_PG_TABLES['turnos'] if USE_PG else """
             CREATE TABLE turnos (
                 id          INTEGER PRIMARY KEY AUTOINCREMENT,
                 nombre      TEXT UNIQUE NOT NULL,
@@ -171,7 +467,7 @@ def migrar_db():
                 contraturno TEXT
             )
         """)
-        
+
     count_t = conn.execute("SELECT COUNT(*) FROM turnos").fetchone()[0]
     if count_t == 0:
         from config import TURNOS_BASE, GRUPOS_BASE, CONTRATURNOS_BASE
@@ -181,51 +477,48 @@ def migrar_db():
                 VALUES (?, ?, ?, ?, ?, ?)
             """, (t_name, t_data.get("work"), t_data.get("rest"), t_data.get("ref_inicio"), GRUPOS_BASE.get(t_name), CONTRATURNOS_BASE.get(t_name)))
 
+    # ── 5. Eliminar CHECK restrictivo de turno (solo SQLite) ─────────────────
+    # En PostgreSQL el DDL ya nace sin ese CHECK, no hay nada que migrar.
+    if not USE_PG:
+        schema_row = conn.execute(
+            "SELECT sql FROM sqlite_master WHERE name='trabajadores' AND type='table'"
+        ).fetchone()
+        if schema_row and "CHECK(turno IN" in (schema_row[0] or ""):
+            conn.executescript("""
+                PRAGMA foreign_keys = OFF;
 
-    # ── 5. Eliminar CHECK restrictivo de turno para aceptar nuevos tipos ────
-    # SQLite no permite ALTER COLUMN, se recrea la tabla si el esquema antiguo
-    # aún tiene CHECK(turno IN ('14x14','5x2',...))
-    schema_row = conn.execute(
-        "SELECT sql FROM sqlite_master WHERE name='trabajadores' AND type='table'"
-    ).fetchone()
-    if schema_row and "CHECK(turno IN" in (schema_row[0] or ""):
-        conn.executescript("""
-            PRAGMA foreign_keys = OFF;
+                CREATE TABLE trabajadores_new (
+                    id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+                    nombre              TEXT NOT NULL,
+                    rut                 TEXT UNIQUE NOT NULL,
+                    cargo               TEXT,
+                    turno               TEXT,
+                    email               TEXT,
+                    estado              TEXT DEFAULT 'En descanso' CHECK(estado IN (
+                                            'Activo en campamento','En descanso','Permiso',
+                                            'Falla','Licencia Médica','Vacaciones','Desvinculado'
+                                        )),
+                    fecha_inicio_ciclo  TEXT,
+                    qr_token            TEXT UNIQUE,
+                    qr_revocado         INTEGER DEFAULT 0,
+                    habitacion_id       INTEGER REFERENCES habitaciones(id) ON DELETE SET NULL,
+                    created_at          TEXT DEFAULT (datetime('now','localtime'))
+                );
 
-            CREATE TABLE trabajadores_new (
-                id                  INTEGER PRIMARY KEY AUTOINCREMENT,
-                nombre              TEXT NOT NULL,
-                rut                 TEXT UNIQUE NOT NULL,
-                cargo               TEXT,
-                turno               TEXT,
-                email               TEXT,
-                estado              TEXT DEFAULT 'En descanso' CHECK(estado IN (
-                                        'Activo en campamento','En descanso','Permiso',
-                                        'Falla','Licencia Médica','Vacaciones','Desvinculado'
-                                    )),
-                fecha_inicio_ciclo  TEXT,
-                qr_token            TEXT UNIQUE,
-                qr_revocado         INTEGER DEFAULT 0,
-                habitacion_id       INTEGER REFERENCES habitaciones(id) ON DELETE SET NULL,
-                created_at          TEXT DEFAULT (datetime('now','localtime'))
-            );
+                INSERT INTO trabajadores_new
+                    SELECT id, nombre, rut, cargo, turno, email, estado,
+                           fecha_inicio_ciclo, qr_token, qr_revocado, habitacion_id, created_at
+                    FROM trabajadores;
 
-            INSERT INTO trabajadores_new
-                SELECT id, nombre, rut, cargo, turno, email, estado,
-                       fecha_inicio_ciclo, qr_token, qr_revocado, habitacion_id, created_at
-                FROM trabajadores;
+                DROP TABLE trabajadores;
+                ALTER TABLE trabajadores_new RENAME TO trabajadores;
 
-            DROP TABLE trabajadores;
-            ALTER TABLE trabajadores_new RENAME TO trabajadores;
-
-            PRAGMA foreign_keys = ON;
-        """)
+                PRAGMA foreign_keys = ON;
+            """)
 
     conn.commit()
     conn.close()
 
-
-# ─────────────────────────── TRABAJADORES ──────────────────────────────────
 
 def _estado_visual(activos: int, capacidad: int, estado_manual: str) -> str:
     """
@@ -275,11 +568,10 @@ def get_trabajador(id):
 def crear_trabajador(data: dict) -> int:
     conn = get_db()
     c = conn.cursor()
-    c.execute("""
+    id_nuevo = _insert_returning_id(c, """
         INSERT INTO trabajadores (nombre, rut, cargo, turno, email, estado, fecha_inicio_ciclo)
         VALUES (:nombre, :rut, :cargo, :turno, :email, :estado, :fecha_inicio_ciclo)
     """, data)
-    id_nuevo = c.lastrowid
     conn.commit()
     conn.close()
     return id_nuevo
@@ -435,7 +727,10 @@ def admin_limpiar_bd():
     tablas = ["censo", "movimientos", "novedades", "notificaciones_log", "habitaciones", "trabajadores"]
     for t in tablas:
         conn.execute(f"DELETE FROM {t}")
-        conn.execute(f"DELETE FROM sqlite_sequence WHERE name='{t}'")
+        if USE_PG:
+            conn.execute(f"SELECT setval(pg_get_serial_sequence('{t}', 'id'), 1, false)")
+        else:
+            conn.execute(f"DELETE FROM sqlite_sequence WHERE name='{t}'")
 
     conn.execute("DELETE FROM usuarios WHERE username != 'admin'")
 
@@ -627,11 +922,11 @@ def liberar_habitacion_de_trabajador(trabajador_id: int):
 def crear_habitacion(modulo: str, piso: int, numero: str, capacidad: int = 3) -> int:
     conn = get_db()
     c = conn.cursor()
-    c.execute(
+    id_nuevo = _insert_returning_id(
+        c,
         "INSERT OR IGNORE INTO habitaciones (modulo, piso, numero, capacidad) VALUES (?,?,?,?)",
         (modulo, piso, numero, capacidad)
     )
-    id_nuevo = c.lastrowid
     conn.commit()
     conn.close()
     return id_nuevo
@@ -688,13 +983,12 @@ def get_movimientos(limit: int = 200, trabajador_id: int = None):
 def registrar_novedad(data: dict) -> int:
     conn = get_db()
     c = conn.cursor()
-    c.execute("""
+    id_nuevo = _insert_returning_id(c, """
         INSERT INTO novedades (trabajador_id, tipo, fecha_inicio, fecha_fin,
                                pieza_liberada, observacion, registrado_por)
         VALUES (:trabajador_id, :tipo, :fecha_inicio, :fecha_fin,
                 :pieza_liberada, :observacion, :registrado_por)
     """, data)
-    id_nuevo = c.lastrowid
     conn.commit()
     conn.close()
     return id_nuevo
@@ -815,23 +1109,24 @@ def limpiar_bd_desarrollo():
     USO EXCLUSIVO EN DESARROLLO.
     """
     conn = get_db()
-    conn.executescript("""
-        DELETE FROM censo;
-        DELETE FROM movimientos;
-        DELETE FROM novedades;
-        DELETE FROM notificaciones_log;
-        UPDATE trabajadores SET habitacion_id = NULL;
-        DELETE FROM trabajadores;
-        DELETE FROM habitaciones;
-        DELETE FROM sqlite_sequence
-         WHERE name IN ('trabajadores','habitaciones','movimientos',
-                        'novedades','censo','notificaciones_log');
-    """)
+    for _t in ("censo", "movimientos", "novedades", "notificaciones_log"):
+        conn.execute(f"DELETE FROM {_t}")
+    conn.execute("UPDATE trabajadores SET habitacion_id = NULL")
+    conn.execute("DELETE FROM trabajadores")
+    conn.execute("DELETE FROM habitaciones")
+    if USE_PG:
+        for _t in ("trabajadores", "habitaciones", "movimientos",
+                   "novedades", "censo", "notificaciones_log"):
+            conn.execute(f"SELECT setval(pg_get_serial_sequence('{_t}', 'id'), 1, false)")
+    else:
+        conn.execute(
+            "DELETE FROM sqlite_sequence WHERE name IN "
+            "('trabajadores','habitaciones','movimientos',"
+            "'novedades','censo','notificaciones_log')"
+        )
     conn.commit()
     conn.close()
 
-
-# ─────────────────────────── DASHBOARD ─────────────────────────────────────
 
 def get_metricas_dashboard():
     from datetime import date
