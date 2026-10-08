@@ -31,6 +31,11 @@ else:
     default_db_path = "campamento.db"
 
 DATABASE_PATH = os.getenv("DATABASE_PATH", default_db_path)
+
+# PostgreSQL administrado (Railway Postgres, Supabase, Neon, ...).
+# Si está definida, la app usa PostgreSQL en vez de SQLite.
+# En Railway: agregar el plugin PostgreSQL y copiar su DATABASE_URL aquí.
+DATABASE_URL = os.getenv("DATABASE_URL", "")
 PORT = int(os.getenv("PORT", 5000))
 
 # Ciclos de turno iniciales (días_faena, días_descanso)

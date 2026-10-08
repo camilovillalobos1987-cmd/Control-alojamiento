@@ -42,11 +42,18 @@ def init():
         ("demo",   "demo123",   "admin",  "Usuario Demo"),
     ]
     for username, password, rol, nombre in usuarios_default:
-        if not usuario_existe(username):
+        if usuario_existe(username):
+            print(f"[--] Usuario '{username}' ya existe.")
+            continue
+        try:
             crear_usuario(username, hash_password(password), rol, nombre)
             print(f"[OK] Usuario '{username}' ({rol}) creado.")
-        else:
-            print(f"[--] Usuario '{username}' ya existe.")
+        except Exception:
+            # Otro worker lo creó entre el check y el insert (arranque concurrente)
+            if usuario_existe(username):
+                print(f"[--] Usuario '{username}' ya existe.")
+            else:
+                raise
 
     print("[OK] Base de datos lista -> campamento.db")
 
